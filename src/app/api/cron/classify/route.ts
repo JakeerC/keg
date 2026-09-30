@@ -57,7 +57,7 @@ export async function GET() {
     // Filter in JS to find ones with no categories mapped
     const uncategorized = resources
       .filter(r => !r.resource_categories || r.resource_categories.length === 0)
-      .slice(0, 10); // Process 10 at a time to avoid timeout/rate limits on free tier
+      .slice(0, 50); // Increased batch size to 50 per run
 
     if (uncategorized.length === 0) {
       return NextResponse.json({ success: true, message: 'All fetched resources are already categorized.' });
