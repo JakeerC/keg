@@ -1,19 +1,35 @@
 import { supabase } from '@/lib/supabase';
 import AppIcon from '@/components/AppIcon';
 import SearchBar from '@/components/SearchBar';
+import SortDropdown from '@/components/SortDropdown';
 import { Download, TerminalSquare } from 'lucide-react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 
 export const revalidate = 0; // Dynamic page
 
-export default async function Home(props: { searchParams: Promise<{ query?: string; category?: string; filter?: string; limit?: string }> }) {
+type PageProps = { 
+  searchParams: Promise<{ query?: string; category?: string; filter?: string; limit?: string; sort?: string }> 
+};
+
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const { query, category } = await props.searchParams;
+  if (query) return { title: `Search: "${query}"` };
+  if (category) {
+    const name = category.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+    return { title: name };
+  }
+  return {};
+}
+
+export default async function Home(props: PageProps) {
   const searchParams = await props.searchParams;
-  const { query, category, filter } = searchParams;
+  const { query, category, filter, sort = 'installed' } = searchParams;
   
   // Default to 13 (1 hero + 12 grid). Increase by 12 on each load more.
   const limit = searchParams.limit ? parseInt(searchParams.limit) : 13;
   
-  let apps = [];
+  let apps: any[] = [];
   
   if (query) {
     // Search mode
@@ -25,6 +41,7 @@ export default async function Home(props: { searchParams: Promise<{ query?: stri
         description,
         latest_version,
         kind,
+        updated_at,
         analytics_snapshots(count)
       `)
       .or(`display_name.ilike.%${query}%,token.ilike.%${query}%`)
@@ -34,7 +51,7 @@ export default async function Home(props: { searchParams: Promise<{ query?: stri
     apps = data?.map(r => ({
       count: r.analytics_snapshots?.[0]?.count || 0,
       resources: r
-    })).sort((a, b) => b.count - a.count) || [];
+    })) || [];
     
   } else if (category) {
     // Category mode
@@ -54,6 +71,7 @@ export default async function Home(props: { searchParams: Promise<{ query?: stri
             description,
             latest_version,
             kind,
+            updated_at,
             analytics_snapshots(count)
           )
         `)
@@ -63,11 +81,11 @@ export default async function Home(props: { searchParams: Promise<{ query?: stri
       apps = data?.map(rc => ({
         count: (rc.resources as any)?.analytics_snapshots?.[0]?.count || 0,
         resources: rc.resources
-      })).sort((a, b) => b.count - a.count) || [];
+      })) || [];
     }
   } else {
     // Default mode: Top trending
-    const { data } = await supabase
+    let dbQuery = supabase
       .from('analytics_snapshots')
       .select(`
         count,
@@ -76,15 +94,32 @@ export default async function Home(props: { searchParams: Promise<{ query?: stri
           display_name,
           description,
           latest_version,
-          kind
+          kind,
+          updated_at
         )
       `)
       .eq('time_window', '30d')
       .in('metric', ['install-on-request', 'cask-install'])
-      .order('count', { ascending: false })
       .limit(limit);
       
+    if (sort === 'recent') {
+      dbQuery = dbQuery.order('resources(updated_at)', { ascending: false });
+    } else {
+      dbQuery = dbQuery.order('count', { ascending: false }); // Default most installed
+    }
+      
+    const { data } = await dbQuery;
     apps = data || [];
+  }
+
+  // JS-side sorting for query/category (where we fetch resources directly)
+  if (query || category) {
+    if (sort === 'recent') {
+      apps.sort((a, b) => new Date(b.resources.updated_at || 0).getTime() - new Date(a.resources.updated_at || 0).getTime());
+    } else {
+      // Default: most installed
+      apps.sort((a, b) => b.count - a.count);
+    }
   }
 
   const heroApp = apps?.[0];
@@ -134,7 +169,7 @@ export default async function Home(props: { searchParams: Promise<{ query?: stri
 
         <div className="section-header">
           <h2>{query ? 'Search Results' : category ? 'Apps in Category' : 'Most Popular'}</h2>
-          <span className="view-all">View All</span>
+          <SortDropdown />
         </div>
 
         <div className="app-grid">

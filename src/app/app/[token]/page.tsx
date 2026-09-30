@@ -2,8 +2,25 @@ import { supabase } from '@/lib/supabase';
 import AppIcon from '@/components/AppIcon';
 import { TerminalSquare, Download, Globe, ArrowLeft, Command } from 'lucide-react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 
 export const revalidate = 3600;
+
+export async function generateMetadata(props: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await props.params;
+  const { data: resource } = await supabase
+    .from('resources')
+    .select('display_name, description')
+    .eq('token', token)
+    .single();
+
+  if (!resource) return { title: 'App Not Found' };
+
+  return {
+    title: resource.display_name || token,
+    description: resource.description || `Install ${token} via Homebrew.`,
+  };
+}
 
 export default async function AppDetailsPage(props: { params: Promise<{ token: string }> }) {
   const params = await props.params;
