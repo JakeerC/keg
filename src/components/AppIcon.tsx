@@ -1,0 +1,21 @@
+"use client";
+
+import React, { useState } from 'react';
+
+export default function AppIcon({ token, isHero }: { token: string; isHero?: boolean }) {
+  const [error, setError] = useState(false);
+  const sizeClass = isHero ? { width: '100%', height: '100%', objectFit: 'contain' as const, borderRadius: '24px' } : undefined;
+
+  if (error) {
+    return <span style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: isHero ? '3rem' : '1.5rem' }}>⌘</span>;
+  }
+
+  return (
+    <img 
+      src={`https://raw.githubusercontent.com/alielsokary/CaskFlow/icons/${token}.png`} 
+      alt=""
+      style={sizeClass}
+      onError={() => setError(true)}
+    />
+  );
+}
