@@ -105,6 +105,6 @@ export async function GET() {
 
   } catch (error: unknown) {
     console.error('Sync cask categories error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
 }

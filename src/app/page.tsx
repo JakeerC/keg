@@ -11,7 +11,7 @@ import { Download, TerminalSquare } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { createSupabaseServer } from '@/lib/supabase-server';
-
+import { getBrowseResults, type AppData } from '@/lib/browse-queries';
 export const revalidate = 0; // Dynamic page
 
 type PageProps = { 
@@ -58,128 +58,19 @@ export default async function Home(props: PageProps) {
     }
   }
   
-  type AppData = {
-    count: number;
-    resources: {
-      id: string;
-      token: string;
-      display_name: string | null;
-      description: string | null;
-      latest_version: string | null;
-      kind: string;
-      updated_at: string | null;
-      analytics_snapshots?: { count: number }[] | null;
-    };
-  };
-
-  let apps: AppData[] = [];
-  
-  if (query) {
-    // Search mode
-    let dbQuery = supabase
-      .from('resources')
-      .select(`
-        id,
-        token,
-        display_name,
-        description,
-        latest_version,
-        kind,
-        updated_at,
-        analytics_snapshots(count)
-      `)
-      .or(`display_name.ilike.%${query}%,token.ilike.%${query}%`);
-      
-    if (kind && kind !== 'both') {
-      dbQuery = dbQuery.eq('kind', kind);
-    }
-    
-    const { data } = await dbQuery.limit(limit);
-      
-    // Map to expected structure
-    apps = data?.map(r => ({
-      count: r.analytics_snapshots?.[0]?.count || 0,
-      resources: r
-    })) || [];
-    
-  } else if (category) {
-    // Category mode
-    const { data: catData } = await supabase
-      .from('categories')
-      .select('id')
-      .eq('slug', category)
-      .single();
-      
-    if (catData) {
-      let dbQuery = supabase
-        .from('resource_categories')
-        .select(`
-          resources!inner (
-            id,
-            token,
-            display_name,
-            description,
-            latest_version,
-            kind,
-            updated_at,
-            analytics_snapshots(count)
-          )
-        `)
-        .eq('category_id', catData.id);
-        
-      if (kind && kind !== 'both') {
-        dbQuery = dbQuery.eq('resources.kind', kind);
-      }
-      
-      const { data } = await dbQuery.limit(limit);
-        
-      apps = data?.map(rc => ({
-        count: (rc.resources as unknown as AppData['resources'])?.analytics_snapshots?.[0]?.count || 0,
-        resources: rc.resources as unknown as AppData['resources']
-      })) || [];
-    }
-  } else {
-    // Default mode: Top trending
-    let dbQuery = supabase
-      .from('analytics_snapshots')
-      .select(`
-        count,
-        resources!inner (
-          id,
-          token,
-          display_name,
-          description,
-          latest_version,
-          kind,
-          updated_at
-        )
-      `)
-      .eq('time_window', '30d')
-      .in('metric', ['install-on-request', 'cask-install']);
-      
-    if (kind && kind !== 'both') {
-      dbQuery = dbQuery.eq('resources.kind', kind);
-    }
-      
-    if (sort === 'recent') {
-      dbQuery = dbQuery.order('resources(updated_at)', { ascending: false });
-    } else {
-      dbQuery = dbQuery.order('count', { ascending: false }); // Default most installed
-    }
-      
-    const { data } = await dbQuery.limit(limit);
-    apps = data || [];
+  let filterValue = filter as import('@/lib/browse-queries').BrowseFilter | undefined;
+  if (!filterValue || !['featured', 'top', 'recent'].includes(filterValue)) {
+    filterValue = 'none';
   }
 
-  // JS-side sorting for query/category (where we fetch resources directly)
-  if (query || category) {
-    if (sort === 'recent') {
-      apps.sort((a, b) => new Date(b.resources.updated_at || 0).getTime() - new Date(a.resources.updated_at || 0).getTime());
-    } else {
-      // Default: most installed
-      apps.sort((a, b) => b.count - a.count);
-    }
-  }
+  const apps = await getBrowseResults(supabase, {
+    query,
+    category,
+    filter: filterValue,
+    sort,
+    kind,
+    limit,
+  });
 
   const heroApp = apps?.[0];
   const gridApps = apps?.slice(1) || [];
@@ -198,6 +89,15 @@ export default async function Home(props: PageProps) {
   if (sort && sort !== 'installed') loadMoreParams.set('sort', sort);
   if (kind && kind !== 'both') loadMoreParams.set('kind', kind);
   loadMoreParams.set('limit', (limit + 12).toString());
+
+  const getHeading = () => {
+    if (query) return 'Search Results';
+    if (category) return 'Apps in Category';
+    if (filterValue === 'featured') return 'Featured Apps';
+    if (filterValue === 'recent') return 'Recently Added';
+    if (filterValue === 'top') return 'Top Charts';
+    return 'Most Popular';
+  };
 
   return (
     <>
@@ -243,7 +143,7 @@ export default async function Home(props: PageProps) {
         )}
 
         <div className="section-header">
-          <h2>{query ? 'Search Results' : category ? 'Apps in Category' : 'Most Popular'}</h2>
+          <h2>{getHeading()}</h2>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <KindToggle />
             <SortDropdown />
@@ -332,7 +232,10 @@ export default async function Home(props: PageProps) {
           ))}
           {apps.length === 0 && (
             <div style={{ color: 'var(--text-muted)', gridColumn: '1 / -1', textAlign: 'center', padding: '3rem 0' }}>
-              No apps found. Try a different search.
+              {query ? 'No apps found matching your search.' : 
+               category ? 'No apps found in this category.' : 
+               filterValue === 'featured' ? 'No featured apps found.' :
+               'No apps found.'}
             </div>
           )}
         </div>

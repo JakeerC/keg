@@ -49,7 +49,14 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
     .eq('collection_id', collection.id)
     .order('sort_order', { ascending: true });
 
-  const apps = items?.map(item => item.resources).filter(Boolean) || [];
+  const apps = (items?.map(item => item.resources).filter(Boolean) || []) as unknown as Array<{
+    id: string;
+    token: string;
+    display_name: string | null;
+    description: string | null;
+    latest_version: string | null;
+    kind: string;
+  }>;
 
   const supabaseServer = await createSupabaseServer();
   const { data: { session } } = await supabaseServer.auth.getSession();
@@ -111,7 +118,7 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
         </div>
 
         <div className="app-grid">
-          {apps.map((app: Record<string, unknown>) => (
+          {apps.map((app) => (
             <div key={app.id} style={{ position: 'relative' }}>
               <div className="app-card">
                 <Link href={`/app/${app.token}`} style={{ position: 'absolute', inset: 0, zIndex: 1 }} />

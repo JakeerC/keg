@@ -112,7 +112,12 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
   const isCask = resource.kind === 'gui_app';
 
   // 3. Fetch live Homebrew extra details
-  let extraDetails: Record<string, unknown> | null = null;
+  let extraDetails: {
+    auto_updates?: boolean;
+    caveats?: string;
+    conflicts_with?: Record<string, unknown>;
+    dependencies?: string[];
+  } | null = null;
   try {
     const res = await fetch(`https://formulae.brew.sh/api/${isCask ? 'cask' : 'formula'}/${token}.json`, { next: { revalidate: 3600 } });
     if (res.ok) {
@@ -124,7 +129,15 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
 
   // 4. Fetch related apps
   const primaryCategoryId = (resource.resource_categories as unknown as Array<{ categories: { id: string } }>)?.[0]?.categories?.id;
-  let relatedApps: Record<string, unknown>[] = [];
+  let relatedApps: Array<{
+    resources: {
+      id: string;
+      token: string;
+      display_name: string | null;
+      kind: string;
+      analytics_snapshots: { count: number }[];
+    }
+  }> = [];
   if (primaryCategoryId) {
     const { data } = await supabase
       .from('resource_categories')
@@ -137,7 +150,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
       .eq('category_id', primaryCategoryId)
       .neq('resources.token', token)
       .limit(5);
-    relatedApps = data || [];
+    relatedApps = (data || []) as unknown as typeof relatedApps;
   }
 
   return (
@@ -289,7 +302,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
                 scrollbarWidth: 'none',
                 WebkitOverflowScrolling: 'touch'
               }} className="hide-scrollbar">
-                {relatedApps.map((related: Record<string, unknown>) => {
+                {relatedApps.map((related) => {
                   const app = related.resources;
                   return (
                       <div key={app.id} className="app-card" style={{ position: 'relative', flexShrink: 0, width: '260px' }}>

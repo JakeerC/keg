@@ -111,6 +111,6 @@ Output ONLY the exact category slug from the list above. Do not output anything 
 
   } catch (error: unknown) {
     console.error('Classification error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
 }
