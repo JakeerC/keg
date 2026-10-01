@@ -88,3 +88,5 @@ There is currently no application test script.
 - [`GEMINI.md`](./GEMINI.md) — Gemini CLI entrypoint.
 - [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) — GitHub Copilot guidance.
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — development, database, validation, and pull request workflow.
+- [`ROADMAP.md`](./ROADMAP.md) — current-state assessment and future feature priorities.
+- [`P0_CORRECTNESS_SECURITY_TRUST_PLAN.md`](./P0_CORRECTNESS_SECURITY_TRUST_PLAN.md) — executable Phase 0 implementation plan.

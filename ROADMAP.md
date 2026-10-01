@@ -98,6 +98,8 @@ Effort is relative engineering effort for the existing codebase: **S** = a few d
 
 **Why first:** These items protect user trust and make every later feature safer to build. A larger catalog or more social surface would amplify current correctness and security problems.
 
+See [`P0_CORRECTNESS_SECURITY_TRUST_PLAN.md`](./P0_CORRECTNESS_SECURITY_TRUST_PLAN.md) for the ordered implementation slices, file-level workstreams, verification matrix, rollout plan, and completion definition.
+
 ### Phase 1 — Make discovery genuinely useful (P1)
 
 **Outcome:** A user can quickly find the right tool, understand why it is relevant, and see trustworthy freshness signals.
