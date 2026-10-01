@@ -38,6 +38,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={manrope.className}>
+        <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+          <filter id="lg-filter" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
+            <feImage x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iWSIgeDE9IjAiIHgyPSIwIiB5MT0iMyUiIHkyPSI5NyUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMwRjAiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMwMDAiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iWCIgeDE9IjIlIiB4Mj0iOTglIiB5MT0iMCIgeTI9IjAiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNGMDAiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMwMDAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjODA4MDgwIi8+PGcgZmlsdGVyPSJibHVyKDJweCkiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMwMDAwODAiLz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI1kpIiBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c2NyZWVuIi8+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNYKSIgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNjcmVlbiIvPjxyZWN0IHg9IjMlIiB5PSI1JSIgd2lkdGg9Ijk0JSIgaGVpZ2h0PSI5MCUiIHJ4PSIxNiIgcnk9IjE2IiBmaWxsPSIjODA4MDgwIiBmaWx0ZXI9ImJsdXIoMTRweCkiLz48L2c+PC9zdmc+" result="displacementMap" />
+            <feDisplacementMap in="SourceGraphic" in2="displacementMap" scale="144" xChannelSelector="R" yChannelSelector="G" />
+            <feColorMatrix type="matrix" result="displacedR" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" />
+            <feDisplacementMap in="SourceGraphic" in2="displacementMap" scale="142" xChannelSelector="R" yChannelSelector="G" />
+            <feColorMatrix type="matrix" result="displacedG" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" />
+            <feDisplacementMap in="SourceGraphic" in2="displacementMap" scale="140" xChannelSelector="R" yChannelSelector="G" />
+            <feColorMatrix type="matrix" result="displacedB" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" />
+            <feBlend in="displacedR" in2="displacedG" mode="screen" result="rg" />
+            <feBlend in="rg" in2="displacedB" mode="screen" />
+          </filter>
+        </svg>
+        <style dangerouslySetInnerHTML={{ __html: `
+          .app-card, .hero-card, .collection-card, .install-btn {
+            backdrop-filter: url(#lg-filter) blur(8px) saturate(1.8) brightness(1.15) !important;
+            -webkit-backdrop-filter: url(#lg-filter) blur(8px) saturate(1.8) brightness(1.15) !important;
+          }
+        `}} />
         <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem>
           <div className="app-window">
           {/* Sidebar */}

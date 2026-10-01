@@ -17,6 +17,12 @@
   --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.03);
   --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.06);
   
+  --dot-color: rgba(0, 0, 0, 0.06);
+  --glass-edge: rgba(255, 255, 255, 0.8);
+  --glass-highlight: rgba(255, 255, 255, 0.4);
+  --glass-shadow: rgba(0, 0, 0, 0.06);
+  --glass-shadow-hover: rgba(0, 0, 0, 0.12);
+  
   --font-sans: var(--font-manrope), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -38,6 +44,12 @@
     
     --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 16px 48px rgba(0, 0, 0, 0.5);
+
+    --dot-color: rgba(255, 255, 255, 0.06);
+    --glass-edge: rgba(255, 255, 255, 0.5);
+    --glass-highlight: rgba(255, 255, 255, 0.15);
+    --glass-shadow: rgba(0, 0, 0, 0.3);
+    --glass-shadow-hover: rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -54,9 +66,23 @@
   transform: scale(1.1);
 }
 
+.collection-card {
+  backdrop-filter: blur(8px) url(#lg-filter) saturate(1.8) brightness(1.15) contrast(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-highlight),
+    inset 1.5px 1.5px 0 var(--glass-edge),
+    inset 0 0 12px var(--glass-highlight),
+    0 8px 32px var(--glass-shadow);
+}
+
 .collection-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-edge),
+    inset 1.5px 1.5px 0 var(--glass-edge),
+    inset 0 0 16px var(--glass-highlight),
+    0 12px 48px var(--glass-shadow-hover);
 }
 
 .hide-scrollbar::-webkit-scrollbar {
@@ -86,12 +112,10 @@ body {
   height: 100vh;
   width: 100vw;
   background-color: var(--bg-main);
-  background-image: 
-    radial-gradient(circle at top right, rgba(242, 106, 90, 0.05), transparent 40%),
-    radial-gradient(circle at bottom left, rgba(79, 176, 131, 0.05), transparent 40%),
-    radial-gradient(var(--border-color) 1px, transparent 1px);
-  background-position: 0 0, 0 0, 0 0;
-  background-size: 100% 100%, 100% 100%, 20px 20px;
+  background-image: url('/blob-scene.svg');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 .sidebar {
@@ -193,19 +217,24 @@ body {
 /* Hero Section (House Pick) */
 .hero-card {
   background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-top: 1px solid var(--border-light);
-  border-radius: 16px;
+  border-radius: 24px;
   padding: 2rem;
   margin-bottom: 3rem;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
+
+  /* Liquid Glass Styles */
+  backdrop-filter: blur(8px) url(#lg-filter) saturate(1.8) brightness(1.15) contrast(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-highlight),
+    inset 1.5px 1.5px 0 var(--glass-edge),
+    inset 0 0 12px var(--glass-highlight),
+    0 8px 32px var(--glass-shadow);
+  border: none;
 }
 
 .hero-tag {
@@ -327,23 +356,33 @@ body {
 
 .app-card {
   background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 16px;
   padding: 1.25rem;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   position: relative;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  
+  /* Liquid Glass Styles */
+  backdrop-filter: blur(8px) url(#lg-filter) saturate(1.8) brightness(1.15) contrast(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-highlight),
+    inset 1.5px 1.5px 0 var(--glass-edge),
+    inset 0 0 12px var(--glass-highlight),
+    0 8px 32px var(--glass-shadow);
+  border: none;
 }
 
 .app-card:hover {
   transform: translateY(-2px);
   background-color: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: var(--shadow-md);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-edge),
+    inset 1.5px 1.5px 0 var(--glass-edge),
+    inset 0 0 16px var(--glass-highlight),
+    0 12px 48px var(--glass-shadow-hover);
 }
 
 .card-header {
@@ -421,22 +460,37 @@ body {
 }
 
 .install-btn {
-  background-color: transparent;
-  border: 1px solid var(--border-color);
+  background-color: var(--bg-card);
   color: var(--text-primary);
-  padding: 0.4rem 1rem;
+  padding: 0.5rem 1.2rem;
   border-radius: 999px;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  
+  /* Liquid Glass Styles */
+  backdrop-filter: blur(8px) url(#lg-filter) saturate(1.8) brightness(1.15) contrast(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-highlight),
+    inset 1px 1px 0 var(--glass-edge),
+    inset 0 0 8px var(--glass-highlight),
+    0 4px 12px var(--glass-shadow);
+  border: none;
 }
 
 .install-btn:hover {
-  background-color: var(--bg-main);
+  transform: translateY(-1px);
+  background-color: var(--bg-card-hover);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-edge),
+    inset 1px 1px 0 var(--glass-edge),
+    inset 0 0 12px var(--glass-highlight),
+    0 6px 16px var(--glass-shadow-hover);
 }
 
 /* Sidebar Elements */
