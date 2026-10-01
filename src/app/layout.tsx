@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { Suspense } from "react";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -35,9 +36,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={manrope.className}>
-        <div className="app-window">
+        <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem>
+          <div className="app-window">
           {/* Sidebar */}
           <Suspense fallback={<div className="sidebar" style={{ width: 260 }}></div>}>
             <Sidebar />
@@ -57,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
         </div>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import AppIcon from '@/components/AppIcon';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import TerminalCommand from '@/components/TerminalCommand';
 import AnalyticsChart from '@/components/AnalyticsChart';
 import { TerminalSquare, Download, Globe, ArrowLeft, Command } from 'lucide-react';
@@ -108,6 +109,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
         <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
           <ArrowLeft size={18} /> Back
         </Link>
+        <ThemeToggle />
       </div>
 
       <main className="content-scroll">

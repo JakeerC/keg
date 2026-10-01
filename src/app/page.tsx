@@ -1,7 +1,9 @@
 import { supabase } from '@/lib/supabase';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import AppIcon from '@/components/AppIcon';
 import SearchBar from '@/components/SearchBar';
 import SortDropdown from '@/components/SortDropdown';
+import KindToggle from '@/components/KindToggle';
 import { Download, TerminalSquare } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -9,7 +11,7 @@ import type { Metadata } from 'next';
 export const revalidate = 0; // Dynamic page
 
 type PageProps = { 
-  searchParams: Promise<{ query?: string; category?: string; filter?: string; limit?: string; sort?: string }> 
+  searchParams: Promise<{ query?: string; category?: string; filter?: string; limit?: string; sort?: string; kind?: string }> 
 };
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
@@ -24,7 +26,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
 export default async function Home(props: PageProps) {
   const searchParams = await props.searchParams;
-  const { query, category, filter, sort = 'installed' } = searchParams;
+  const { query, category, filter, sort = 'installed', kind } = searchParams;
   
   // Default to 13 (1 hero + 12 grid). Increase by 12 on each load more.
   const limit = searchParams.limit ? parseInt(searchParams.limit) : 13;
@@ -33,7 +35,7 @@ export default async function Home(props: PageProps) {
   
   if (query) {
     // Search mode
-    const { data } = await supabase
+    let dbQuery = supabase
       .from('resources')
       .select(`
         token,
@@ -44,8 +46,13 @@ export default async function Home(props: PageProps) {
         updated_at,
         analytics_snapshots(count)
       `)
-      .or(`display_name.ilike.%${query}%,token.ilike.%${query}%`)
-      .limit(limit);
+      .or(`display_name.ilike.%${query}%,token.ilike.%${query}%`);
+      
+    if (kind && kind !== 'both') {
+      dbQuery = dbQuery.eq('kind', kind);
+    }
+    
+    const { data } = await dbQuery.limit(limit);
       
     // Map to expected structure
     apps = data?.map(r => ({
@@ -62,10 +69,10 @@ export default async function Home(props: PageProps) {
       .single();
       
     if (catData) {
-      const { data } = await supabase
+      let dbQuery = supabase
         .from('resource_categories')
         .select(`
-          resources (
+          resources!inner (
             token,
             display_name,
             description,
@@ -75,8 +82,13 @@ export default async function Home(props: PageProps) {
             analytics_snapshots(count)
           )
         `)
-        .eq('category_id', catData.id)
-        .limit(limit);
+        .eq('category_id', catData.id);
+        
+      if (kind && kind !== 'both') {
+        dbQuery = dbQuery.eq('resources.kind', kind);
+      }
+      
+      const { data } = await dbQuery.limit(limit);
         
       apps = data?.map(rc => ({
         count: (rc.resources as any)?.analytics_snapshots?.[0]?.count || 0,
@@ -99,8 +111,11 @@ export default async function Home(props: PageProps) {
         )
       `)
       .eq('time_window', '30d')
-      .in('metric', ['install-on-request', 'cask-install'])
-      .limit(limit);
+      .in('metric', ['install-on-request', 'cask-install']);
+      
+    if (kind && kind !== 'both') {
+      dbQuery = dbQuery.eq('resources.kind', kind);
+    }
       
     if (sort === 'recent') {
       dbQuery = dbQuery.order('resources(updated_at)', { ascending: false });
@@ -108,7 +123,7 @@ export default async function Home(props: PageProps) {
       dbQuery = dbQuery.order('count', { ascending: false }); // Default most installed
     }
       
-    const { data } = await dbQuery;
+    const { data } = await dbQuery.limit(limit);
     apps = data || [];
   }
 
@@ -132,13 +147,24 @@ export default async function Home(props: PageProps) {
     return num.toString();
   };
 
+  const loadMoreParams = new URLSearchParams();
+  if (query) loadMoreParams.set('query', query);
+  if (category) loadMoreParams.set('category', category);
+  if (filter) loadMoreParams.set('filter', filter);
+  if (sort && sort !== 'installed') loadMoreParams.set('sort', sort);
+  if (kind && kind !== 'both') loadMoreParams.set('kind', kind);
+  loadMoreParams.set('limit', (limit + 12).toString());
+
   return (
     <>
       <div className="top-bar">
         <div className="top-bar-title">
           Browse <span className="top-bar-subtitle">apps</span>
         </div>
-        <SearchBar />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <SearchBar />
+          <ThemeToggle />
+        </div>
       </div>
 
       <main className="content-scroll">
@@ -168,7 +194,10 @@ export default async function Home(props: PageProps) {
 
         <div className="section-header">
           <h2>{query ? 'Search Results' : category ? 'Apps in Category' : 'Most Popular'}</h2>
-          <SortDropdown />
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <KindToggle />
+            <SortDropdown />
+          </div>
         </div>
 
         <div className="app-grid">
@@ -210,7 +239,7 @@ export default async function Home(props: PageProps) {
         {apps.length >= limit && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0', gridColumn: '1 / -1' }}>
             <Link 
-              href={`/?query=${query || ''}&category=${category || ''}&limit=${limit + 12}`} 
+              href={`/?${loadMoreParams.toString()}`} 
               scroll={false} 
               style={{ textDecoration: 'none' }}
             >

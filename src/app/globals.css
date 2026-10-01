@@ -20,8 +20,7 @@
   --font-sans: var(--font-manrope), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+[data-theme='dark'] {
     /* Dark Theme (Liquid Glass Dark) */
     --bg-sidebar: rgba(19, 17, 26, 0.85);
     --bg-main: #14121A;
@@ -39,7 +38,6 @@
     
     --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 16px 48px rgba(0, 0, 0, 0.5);
-  }
 }
 
 * {
@@ -67,8 +65,13 @@ body {
   display: flex;
   height: 100vh;
   width: 100vw;
-  background-image: radial-gradient(circle at top right, rgba(242, 106, 90, 0.05), transparent 40%),
-                    radial-gradient(circle at bottom left, rgba(79, 176, 131, 0.05), transparent 40%);
+  background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(circle at top right, rgba(242, 106, 90, 0.05), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(79, 176, 131, 0.05), transparent 40%),
+    radial-gradient(var(--border-color) 1px, transparent 1px);
+  background-position: 0 0, 0 0, 0 0;
+  background-size: 100% 100%, 100% 100%, 20px 20px;
 }
 
 .sidebar {
