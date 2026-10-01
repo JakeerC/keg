@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { verifyCronAuth } from '../src/lib/cron-auth';
-import { NextResponse } from 'next/server';
 
 // Mock NextResponse
 vi.mock('next/server', () => {
@@ -23,7 +22,7 @@ describe('verifyCronAuth', () => {
     delete process.env.CRON_SECRET;
     const req = new Request('http://localhost', { headers: new Headers() });
     
-    const res = verifyCronAuth(req) as any;
+    const res = verifyCronAuth(req) as unknown as { body: { error: string }, init: { status: number } };
     expect(res.body.error).toBe('Server configuration error');
     expect(res.init.status).toBe(500);
   });
@@ -32,7 +31,7 @@ describe('verifyCronAuth', () => {
     process.env.CRON_SECRET = 'my-secret';
     const req = new Request('http://localhost', { headers: new Headers() });
     
-    const res = verifyCronAuth(req) as any;
+    const res = verifyCronAuth(req) as unknown as { body: { error: string }, init: { status: number } };
     expect(res.body.error).toBe('Unauthorized');
     expect(res.init.status).toBe(401);
   });
@@ -43,7 +42,7 @@ describe('verifyCronAuth', () => {
       headers: new Headers({ authorization: 'Bearer wrong-secret' }) 
     });
     
-    const res = verifyCronAuth(req) as any;
+    const res = verifyCronAuth(req) as unknown as { body: { error: string }, init: { status: number } };
     expect(res.body.error).toBe('Unauthorized');
     expect(res.init.status).toBe(401);
   });

@@ -13,11 +13,11 @@ describe('KindToggle (URL state updates)', () => {
   
   beforeEach(() => {
     vi.clearAllMocks();
-    (navigation.useRouter as any).mockReturnValue({ push: mockPush });
+    vi.mocked(navigation.useRouter).mockReturnValue({ push: mockPush } as unknown as ReturnType<typeof navigation.useRouter>);
   });
 
   it('renders "Both" as active by default if no kind param', () => {
-    (navigation.useSearchParams as any).mockReturnValue(new URLSearchParams());
+    vi.mocked(navigation.useSearchParams).mockReturnValue(new URLSearchParams());
     
     render(<KindToggle />);
     
@@ -26,7 +26,7 @@ describe('KindToggle (URL state updates)', () => {
   });
 
   it('pushes new kind and removes limit', () => {
-    (navigation.useSearchParams as any).mockReturnValue(new URLSearchParams('limit=10'));
+    vi.mocked(navigation.useSearchParams).mockReturnValue(new URLSearchParams('limit=10'));
     
     render(<KindToggle />);
     
@@ -37,7 +37,7 @@ describe('KindToggle (URL state updates)', () => {
   });
 
   it('removes kind param if "Both" is selected', () => {
-    (navigation.useSearchParams as any).mockReturnValue(new URLSearchParams('kind=gui_app&limit=10'));
+    vi.mocked(navigation.useSearchParams).mockReturnValue(new URLSearchParams('kind=gui_app&limit=10'));
     
     render(<KindToggle />);
     

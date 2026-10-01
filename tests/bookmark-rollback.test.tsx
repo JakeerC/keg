@@ -12,7 +12,6 @@ vi.mock('next/navigation', () => ({
 // Mock Supabase browser client
 const mockInsert = vi.fn();
 const mockDelete = vi.fn();
-const mockEq = vi.fn();
 const mockGetSession = vi.fn();
 
 vi.mock('../src/lib/supabase-browser', () => ({
@@ -32,7 +31,7 @@ describe('StarButton optimistic UI rollback', () => {
   });
 
   it('rolls back state if API call fails', async () => {
-    let rejectPromise: any;
+    let rejectPromise: (value?: unknown) => void = () => {};
     const dbPromise = new Promise(resolve => {
       rejectPromise = () => resolve({ error: { message: 'DB Error' } });
     });
