@@ -2,22 +2,22 @@
   "schema_version": 1,
   "items": [
     {
-      "title": "Survey repository structure and current product capabilities",
+      "title": "Inspect existing project instruction and documentation files",
       "status": "done"
     },
     {
-      "title": "Review architecture, documentation, and project checks",
+      "title": "Draft application context and contributor guidance",
       "status": "done"
     },
     {
-      "title": "Prioritize future features and write roadmap document",
-      "status": "in-progress"
+      "title": "Update agent-specific context files without losing generated rules",
+      "status": "done"
     },
     {
-      "title": "Validate roadmap against repository state",
-      "status": "pending"
+      "title": "Validate documentation consistency and working-tree changes",
+      "status": "done"
     }
   ],
-  "updated_at": "2026-10-01T17:26:56.501Z",
+  "updated_at": "2026-10-01T17:41:36.959Z",
   "session_id": "01a0f877-fa25-71cc-bbf6-ef4c449edd1d"
 }

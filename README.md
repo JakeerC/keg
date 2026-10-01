@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Keg
 
-## Getting Started
+Keg is a discovery and personal library for macOS software. It currently catalogs Homebrew formulae and casks so users can browse apps and CLI tools, inspect installation details and popularity, save resources, organize collections, and export a `Brewfile`.
 
-First, run the development server:
+## What is implemented
+
+- Search and browse Homebrew resources.
+- Category, resource-kind, popularity, and recent-update views.
+- Resource detail pages with metadata, Homebrew details, commands, dependencies/caveats, related resources, and analytics.
+- GitHub, Google, and email magic-link authentication through Supabase.
+- Starred resources and public/private collections.
+- Brewfile export for saved resources.
+- Daily Homebrew synchronization plus category enrichment jobs.
+- Responsive layout, collapsible sidebar, and light/dark theme support.
+
+See [`ROADMAP.md`](./ROADMAP.md) for the current assessment, known gaps, and future feature priorities.
+
+## Stack
+
+- Next.js `16.3.7` App Router
+- React `19.2.8`
+- Strict TypeScript
+- Supabase Postgres, Auth, and Row Level Security
+- Homebrew Formulae API
+- Gemini classification for uncategorized resources
+- Vercel cron configuration
+
+## Getting started
+
+### Requirements
+
+- Node.js compatible with the repository's Next.js version.
+- npm.
+- A Supabase project for database and authentication flows.
+
+Install dependencies and create local environment configuration:
+
+```bash
+npm install
+cp .env.local.example .env.local
+```
+
+Fill in the local Supabase and server-only values. Never commit `.env.local` or expose service-role, Gemini, or cron credentials to the browser.
+
+Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` — server-only ingestion access
+- `GEMINI_API_KEY` — server-only classification access
+- `CRON_SECRET` — scheduled route authorization
 
-## Learn More
+Authentication providers, redirect URLs, database tables, and RLS policies must also be configured in Supabase. See [`APPLICATION_CONTEXT.md`](./APPLICATION_CONTEXT.md) for the data flow and security boundaries.
 
-To learn more about Next.js, take a look at the following resources:
+## Database
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The current SQL definitions are in:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [`database/schema.sql`](./database/schema.sql) — catalog, categories, icons, and analytics.
+- [`database/phase3-schema.sql`](./database/phase3-schema.sql) — bookmarks and collections.
 
-## Deploy on Vercel
+Apply them in the intended order to a development Supabase project. The repository does not yet have a formal migration runner; schema changes should be documented and kept consistent across these files.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project commands
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run dev      # local development
+npm run lint     # ESLint
+npm run build    # production build and TypeScript validation
+npm start        # serve a production build
+```
+
+There is currently no application test script.
+
+## Documentation for contributors and coding agents
+
+- [`APPLICATION_CONTEXT.md`](./APPLICATION_CONTEXT.md) — canonical product, architecture, data model, and workflow context.
+- [`AGENTS.md`](./AGENTS.md) — shared coding-agent rules and generated Next.js guidance.
+- [`CLAUDE.md`](./CLAUDE.md) — Claude Code entrypoint.
+- [`GEMINI.md`](./GEMINI.md) — Gemini CLI entrypoint.
+- [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) — GitHub Copilot guidance.
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — development, database, validation, and pull request workflow.
