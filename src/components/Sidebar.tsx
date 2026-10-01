@@ -15,7 +15,14 @@ import {
   Terminal, 
   Bitcoin, 
   Gamepad2, 
-  MenuSquare 
+  MenuSquare,
+  Briefcase,
+  GraduationCap,
+  Shield,
+  Wrench,
+  Video,
+  Code,
+  List
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -48,7 +55,7 @@ export default function Sidebar() {
 
       <div className="nav-section">
         <div className="nav-title">Categories</div>
-        <div className="nav-list">
+        <div className="nav-list" style={{ overflowY: 'auto' }}>
           <Link href="/?category=ai-llms" className={`nav-item ${activeCategory === 'ai-llms' ? 'active' : ''}`}><Sparkles className="nav-icon" /> AI & LLMs</Link>
           <Link href="/?category=audio-music" className={`nav-item ${activeCategory === 'audio-music' ? 'active' : ''}`}><Music className="nav-icon" /> Audio & Music</Link>
           <Link href="/?category=browsers" className={`nav-item ${activeCategory === 'browsers' ? 'active' : ''}`}><Globe className="nav-icon" /> Browsers</Link>
@@ -59,6 +66,13 @@ export default function Sidebar() {
           <Link href="/?category=finance-crypto" className={`nav-item ${activeCategory === 'finance-crypto' ? 'active' : ''}`}><Bitcoin className="nav-icon" /> Finance & Crypto</Link>
           <Link href="/?category=games" className={`nav-item ${activeCategory === 'games' ? 'active' : ''}`}><Gamepad2 className="nav-icon" /> Games</Link>
           <Link href="/?category=menu-bar" className={`nav-item ${activeCategory === 'menu-bar' ? 'active' : ''}`}><MenuSquare className="nav-icon" /> Menu Bar</Link>
+          <Link href="/?category=productivity" className={`nav-item ${activeCategory === 'productivity' ? 'active' : ''}`}><Briefcase className="nav-icon" /> Productivity</Link>
+          <Link href="/?category=science-education" className={`nav-item ${activeCategory === 'science-education' ? 'active' : ''}`}><GraduationCap className="nav-icon" /> Science & Education</Link>
+          <Link href="/?category=security-privacy" className={`nav-item ${activeCategory === 'security-privacy' ? 'active' : ''}`}><Shield className="nav-icon" /> Security & Privacy</Link>
+          <Link href="/?category=utilities" className={`nav-item ${activeCategory === 'utilities' ? 'active' : ''}`}><Wrench className="nav-icon" /> Utilities</Link>
+          <Link href="/?category=video" className={`nav-item ${activeCategory === 'video' ? 'active' : ''}`}><Video className="nav-icon" /> Video</Link>
+          <Link href="/?category=web-development" className={`nav-item ${activeCategory === 'web-development' ? 'active' : ''}`}><Code className="nav-icon" /> Web Development</Link>
+          <Link href="/?category=uncategorized" className={`nav-item ${activeCategory === 'uncategorized' ? 'active' : ''}`}><List className="nav-icon" /> Other</Link>
         </div>
       </div>
     </aside>

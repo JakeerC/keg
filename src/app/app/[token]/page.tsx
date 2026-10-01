@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import AppIcon from '@/components/AppIcon';
+import TerminalCommand from '@/components/TerminalCommand';
+import AnalyticsChart from '@/components/AnalyticsChart';
 import { TerminalSquare, Download, Globe, ArrowLeft, Command } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -61,18 +63,24 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
     );
   }
 
-  // 2. Fetch 30d analytics
-  const { data: analytics } = await supabase
+  // 2. Fetch all analytics
+  const { data: analyticsData } = await supabase
     .from('analytics_snapshots')
-    .select('count')
+    .select('time_window, count')
     .eq('resource_id', resource.id)
-    .eq('time_window', '30d')
     .in('metric', ['install-on-request', 'cask-install'])
     .order('captured_at', { ascending: false })
-    .limit(1)
-    .single();
+    .limit(3);
 
-  const count = analytics?.count || 0;
+  // Parse analytics for recharts
+  const chartData = [
+    { name: '30 Days', installs: analyticsData?.find(a => a.time_window === '30d')?.count || 0 },
+    { name: '90 Days', installs: analyticsData?.find(a => a.time_window === '90d')?.count || 0 },
+    { name: '365 Days', installs: analyticsData?.find(a => a.time_window === '365d')?.count || 0 }
+  ];
+  
+  const count30d = chartData[0].installs;
+
   const formatCount = (num: number) => {
     if (!num) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -82,6 +90,17 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
 
   const categoryName = (resource.resource_categories as any)?.[0]?.categories?.display_name || 'Uncategorized';
   const isCask = resource.kind === 'gui_app';
+
+  // 3. Fetch live Homebrew extra details
+  let extraDetails: any = null;
+  try {
+    const res = await fetch(`https://formulae.brew.sh/api/${isCask ? 'cask' : 'formula'}/${token}.json`, { next: { revalidate: 3600 } });
+    if (res.ok) {
+      extraDetails = await res.json();
+    }
+  } catch (e) {
+    // gracefully fail if homebrew API is down
+  }
 
   return (
     <>
@@ -115,10 +134,6 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
               </p>
               
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <button className="install-btn" style={{ padding: '0.6rem 1.5rem', fontSize: '1rem', backgroundColor: 'var(--accent-green)', color: 'white', border: 'none' }}>
-                  <Download size={18} /> Install
-                </button>
-                
                 {resource.homepage && (
                   <a href={resource.homepage} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
                     <button className="install-btn" style={{ padding: '0.6rem 1.5rem', fontSize: '1rem' }}>
@@ -133,7 +148,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '3rem' }}>
             <div className="app-card" style={{ padding: '1.5rem' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', fontWeight: 700 }}>30-Day Installs</div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>{formatCount(count)}</div>
+              <div style={{ fontSize: '2rem', fontWeight: 700 }}>{formatCount(count30d)}</div>
             </div>
             <div className="app-card" style={{ padding: '1.5rem' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', fontWeight: 700 }}>Latest Version</div>
@@ -145,16 +160,71 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
             </div>
           </div>
 
-          <div className="app-card" style={{ padding: '2rem' }}>
-            <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Command size={20} /> Terminal Instructions
-            </h3>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              You can install {resource.display_name || resource.token} via Homebrew by running the following command in your terminal:
-            </p>
-            <div style={{ backgroundColor: 'var(--bg-main)', padding: '1rem', borderRadius: '8px', fontFamily: 'monospace', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border-color)' }}>
-              <span>brew install {isCask ? '--cask ' : ''}{resource.token}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', marginBottom: '3rem' }}>
+            <div className="app-card" style={{ padding: '2rem', gridColumn: '1 / -1' }}>
+              <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Command size={20} /> Terminal Instructions
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                Install or manage {resource.display_name || resource.token} via Homebrew:
+              </p>
+              
+              <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>INSTALL</div>
+              <TerminalCommand command={`brew install ${isCask ? '--cask ' : ''}${resource.token}`} />
+              
+              <div style={{ marginBottom: '0.5rem', marginTop: '1rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>UNINSTALL</div>
+              <TerminalCommand command={`brew uninstall ${isCask ? '--cask ' : ''}${resource.token}`} />
+              
+              {isCask && (
+                <>
+                  <div style={{ marginBottom: '0.5rem', marginTop: '1rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>COMPLETELY REMOVE (ZAP)</div>
+                  <TerminalCommand command={`brew uninstall --zap --cask ${resource.token}`} />
+                </>
+              )}
             </div>
+
+            <div className="app-card" style={{ padding: '2rem' }}>
+              <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>Install Trends</h3>
+              <AnalyticsChart data={chartData} />
+            </div>
+
+            {extraDetails && (
+              <div className="app-card" style={{ padding: '2rem' }}>
+                <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>Extra Details</h3>
+                
+                {extraDetails.auto_updates && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Auto Updates</div>
+                    <div>Yes (Handles its own updates)</div>
+                  </div>
+                )}
+                
+                {extraDetails.caveats && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Caveats</div>
+                    <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', color: 'var(--accent-orange)' }}>{extraDetails.caveats}</div>
+                  </div>
+                )}
+
+                {isCask && extraDetails.conflicts_with && Object.keys(extraDetails.conflicts_with).length > 0 && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Conflicts With</div>
+                    <div style={{ fontSize: '0.9rem' }}>{JSON.stringify(extraDetails.conflicts_with)}</div>
+                  </div>
+                )}
+                
+                {!isCask && extraDetails.dependencies && extraDetails.dependencies.length > 0 && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Dependencies</div>
+                    <div style={{ fontSize: '0.9rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {extraDetails.dependencies.map((dep: string) => (
+                        <span key={dep} style={{ background: 'var(--bg-main)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>{dep}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
         </div>

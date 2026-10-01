@@ -150,7 +150,6 @@ export default async function Home(props: PageProps) {
                 <h1 className="hero-title">{heroApp.resources?.display_name || heroApp.resources?.token}</h1>
                 <p className="hero-desc">{heroApp.resources?.description}</p>
                 <div className="hero-meta">
-                  <span className="status-badge">Installed</span>
                   <span>{formatCount(heroApp.count)} pours</span>
                   <span>v{heroApp.resources?.latest_version || '1.0.0'}</span>
                   <span>{heroApp.resources?.kind === 'gui_app' ? 'Mac App' : 'CLI Tool'}</span>
@@ -197,9 +196,6 @@ export default async function Home(props: PageProps) {
                     <span>↓ {formatCount(app.count)}</span>
                     <span>• v{app.resources?.latest_version?.substring(0, 8) || 'latest'}</span>
                   </div>
-                  <button className="install-btn">
-                    <Download size={14} /> Install
-                  </button>
                 </div>
               </div>
             </Link>
