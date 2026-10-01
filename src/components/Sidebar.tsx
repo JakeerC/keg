@@ -1,35 +1,28 @@
 "use client";
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams, usePathname } from 'next/navigation';
-import { 
-  LayoutGrid, 
-  Star, 
-  TrendingUp, 
-  Clock, 
-  Sparkles, 
-  Music, 
-  Globe, 
-  Cloud, 
-  MessageSquare, 
-  PenTool, 
-  Terminal, 
-  Bitcoin, 
-  Gamepad2, 
-  MenuSquare,
-  Briefcase,
-  GraduationCap,
-  Shield,
-  Wrench,
-  Video,
-  Code,
-  List
-} from "lucide-react";
+import { LayoutGrid, Star, TrendingUp, Clock, Sparkles, Music, Globe, Cloud, MessageSquare, PenTool, Terminal, Bitcoin, Gamepad2, MenuSquare, Briefcase, GraduationCap, Shield, Wrench, Video, Code, List } from "lucide-react";
+import { createSupabaseBrowser } from '@/lib/supabase-browser';
 
 export default function Sidebar() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const activeCategory = searchParams.get('category');
   const activeFilter = searchParams.get('filter');
+  
+  const [user, setUser] = useState<any>(null);
+  const supabase = createSupabaseBrowser();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+    return () => subscription.unsubscribe();
+  }, [supabase]);
   
   // Home is active when we're at / and there's no specific filter/category selected
   const isHome = pathname === '/' && !activeCategory && !activeFilter;
@@ -49,10 +42,8 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="logo">
-        <div className="logo-icon">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
-        </div>
+      <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', fontSize: '1.25rem', fontWeight: 700 }}>
+        <img src="/apple-touch-icon.png" alt="Keg Logo" style={{ width: '32px', height: '32px', borderRadius: '8px', boxShadow: 'var(--shadow-sm)' }} />
         Keg
       </div>
       
@@ -63,6 +54,12 @@ export default function Sidebar() {
           <Link href={createLink('filter', 'featured')} className={`nav-item ${activeFilter === 'featured' ? 'active' : ''}`}><Star className="nav-icon" /> Featured</Link>
           <Link href={createLink('filter', 'top')} className={`nav-item ${activeFilter === 'top' ? 'active' : ''}`}><TrendingUp className="nav-icon" /> Top Charts</Link>
           <Link href={createLink('filter', 'recent')} className={`nav-item ${activeFilter === 'recent' ? 'active' : ''}`}><Clock className="nav-icon" /> Recently Added</Link>
+          {user && (
+            <>
+              <Link href="/stars" className={`nav-item ${pathname === '/stars' ? 'active' : ''}`}><Star className="nav-icon" /> My Stars</Link>
+              <Link href="/my-collections" className={`nav-item ${pathname === '/my-collections' ? 'active' : ''}`}><List className="nav-icon" /> My Collections</Link>
+            </>
+          )}
         </div>
       </div>
 

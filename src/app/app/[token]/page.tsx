@@ -1,6 +1,10 @@
 import { supabase } from '@/lib/supabase';
+import { createSupabaseServer } from '@/lib/supabase-server';
 import AppIcon from '@/components/AppIcon';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import AuthButton from '@/components/AuthButton';
+import StarButton from '@/components/StarButton';
+import SaveToCollectionButton from '@/components/SaveToCollectionButton';
 import TerminalCommand from '@/components/TerminalCommand';
 import AnalyticsChart from '@/components/AnalyticsChart';
 import { TerminalSquare, Download, Globe, ArrowLeft, Command } from 'lucide-react';
@@ -28,6 +32,20 @@ export async function generateMetadata(props: { params: Promise<{ token: string 
 export default async function AppDetailsPage(props: { params: Promise<{ token: string }> }) {
   const params = await props.params;
   const token = params.token;
+  
+  const supabaseServer = await createSupabaseServer();
+  const { data: { session } } = await supabaseServer.auth.getSession();
+  
+  let userBookmarks = new Set<string>();
+  if (session) {
+    const { data: bookmarks } = await supabaseServer
+      .from('bookmarks')
+      .select('resource_id')
+      .eq('user_id', session.user.id);
+    if (bookmarks) {
+      userBookmarks = new Set(bookmarks.map((b: any) => b.resource_id));
+    }
+  }
 
   // 1. Fetch resource
   const { data: resource } = await supabase
@@ -43,6 +61,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
       kind,
       resource_categories (
         categories (
+          id,
           display_name
         )
       )
@@ -103,13 +122,34 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
     // gracefully fail if homebrew API is down
   }
 
+  // 4. Fetch related apps
+  const primaryCategoryId = (resource.resource_categories as any)?.[0]?.categories?.id;
+  let relatedApps: any[] = [];
+  if (primaryCategoryId) {
+    const { data } = await supabase
+      .from('resource_categories')
+      .select(`
+        resources!inner (
+          id, token, display_name, kind,
+          analytics_snapshots(count)
+        )
+      `)
+      .eq('category_id', primaryCategoryId)
+      .neq('resources.token', token)
+      .limit(5);
+    relatedApps = data || [];
+  }
+
   return (
     <>
       <div className="top-bar">
         <Link href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
           <ArrowLeft size={18} /> Back
         </Link>
-        <ThemeToggle />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <ThemeToggle />
+          <AuthButton />
+        </div>
       </div>
 
       <main className="content-scroll">
@@ -128,9 +168,15 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
               <div style={{ color: 'var(--accent-orange)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
                 {categoryName} • {isCask ? 'Mac App (Cask)' : 'CLI Tool (Formula)'}
               </div>
-              <h1 style={{ fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>
-                {resource.display_name || resource.token}
-              </h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                <h1 style={{ fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 0 }}>
+                  {resource.display_name || resource.token}
+                </h1>
+                <div style={{ display: 'flex', gap: '0.5rem', transform: 'scale(1.2)', transformOrigin: 'left center' }}>
+                  <StarButton resourceId={resource.id} initialIsStarred={userBookmarks.has(resource.id)} />
+                  <SaveToCollectionButton resourceId={resource.id} />
+                </div>
+              </div>
               <p style={{ fontSize: '1.2rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1.5rem' }}>
                 {resource.description}
               </p>
@@ -228,6 +274,51 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
               </div>
             )}
           </div>
+          
+          {/* Related Apps */}
+          {relatedApps && relatedApps.length > 0 && (
+            <div style={{ marginTop: '2rem', marginBottom: '3rem' }}>
+              <div className="section-header" style={{ marginTop: '0' }}>
+                <h2 style={{ fontSize: '1.2rem', color: 'var(--text-secondary)' }}>More in {categoryName}</h2>
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                gap: '1rem', 
+                overflowX: 'auto', 
+                paddingBottom: '1rem',
+                scrollbarWidth: 'none',
+                WebkitOverflowScrolling: 'touch'
+              }} className="hide-scrollbar">
+                {relatedApps.map((related: any) => {
+                  const app = related.resources;
+                  return (
+                      <div key={app.id} className="app-card" style={{ position: 'relative', flexShrink: 0, width: '260px' }}>
+                        <Link href={`/app/${app.token}`} style={{ position: 'absolute', inset: 0, zIndex: 1 }} />
+                        <div className="card-header">
+                          <div className="app-icon">
+                            {app.kind === 'gui_app' ? (
+                              <AppIcon token={app.token} />
+                            ) : (
+                              <TerminalSquare size={24} strokeWidth={1.5} color="var(--text-secondary)" />
+                            )}
+                          </div>
+                          <div className="app-info" style={{ position: 'relative', zIndex: 2 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                              <div className="app-name" style={{ marginBottom: 0 }}>{app.display_name || app.token}</div>
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <StarButton resourceId={app.id} initialIsStarred={userBookmarks.has(app.id)} />
+                                <SaveToCollectionButton resourceId={app.id} />
+                              </div>
+                            </div>
+                            <div className="app-category">{app.kind === 'gui_app' ? 'Mac App' : 'CLI Tool'}</div>
+                          </div>
+                        </div>
+                      </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
         </div>
       </main>

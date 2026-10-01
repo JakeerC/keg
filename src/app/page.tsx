@@ -4,9 +4,13 @@ import AppIcon from '@/components/AppIcon';
 import SearchBar from '@/components/SearchBar';
 import SortDropdown from '@/components/SortDropdown';
 import KindToggle from '@/components/KindToggle';
+import AuthButton from '@/components/AuthButton';
+import StarButton from '@/components/StarButton';
+import SaveToCollectionButton from '@/components/SaveToCollectionButton';
 import { Download, TerminalSquare } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { createSupabaseServer } from '@/lib/supabase-server';
 
 export const revalidate = 0; // Dynamic page
 
@@ -31,6 +35,29 @@ export default async function Home(props: PageProps) {
   // Default to 13 (1 hero + 12 grid). Increase by 12 on each load more.
   const limit = searchParams.limit ? parseInt(searchParams.limit) : 13;
   
+  const supabaseServer = await createSupabaseServer();
+  const { data: { session } } = await supabaseServer.auth.getSession();
+  
+  // Fetch featured collections
+  const { data: featuredCollections } = await supabase
+    .from('collections')
+    .select('*')
+    .eq('is_featured', true)
+    .order('sort_order', { ascending: true })
+    .limit(4);
+  
+  let userBookmarks = new Set<string>();
+  if (session) {
+    const { data: bookmarks } = await supabaseServer
+      .from('bookmarks')
+      .select('resource_id')
+      .eq('user_id', session.user.id);
+    
+    if (bookmarks) {
+      userBookmarks = new Set(bookmarks.map(b => b.resource_id));
+    }
+  }
+  
   let apps: any[] = [];
   
   if (query) {
@@ -38,6 +65,7 @@ export default async function Home(props: PageProps) {
     let dbQuery = supabase
       .from('resources')
       .select(`
+        id,
         token,
         display_name,
         description,
@@ -73,6 +101,7 @@ export default async function Home(props: PageProps) {
         .from('resource_categories')
         .select(`
           resources!inner (
+            id,
             token,
             display_name,
             description,
@@ -102,6 +131,7 @@ export default async function Home(props: PageProps) {
       .select(`
         count,
         resources!inner (
+          id,
           token,
           display_name,
           description,
@@ -164,24 +194,30 @@ export default async function Home(props: PageProps) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <SearchBar />
           <ThemeToggle />
+          <AuthButton />
         </div>
       </div>
 
       <main className="content-scroll">
         {heroApp && (
-          <Link href={`/app/${heroApp.resources?.token}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+          <div style={{ position: 'relative' }}>
             <div className="hero-card">
-              <div>
+              <Link href={`/app/${heroApp.resources?.token}`} style={{ position: 'absolute', inset: 0, zIndex: 1 }} />
+              <div style={{ position: 'relative', zIndex: 2 }}>
                 <div className="hero-tag">✦ {query ? 'TOP RESULT' : category ? 'CATEGORY TOP' : 'HOUSE PICK'}</div>
                 <h1 className="hero-title">{heroApp.resources?.display_name || heroApp.resources?.token}</h1>
                 <p className="hero-desc">{heroApp.resources?.description}</p>
-                <div className="hero-meta">
+                <div className="hero-meta" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <span>{formatCount(heroApp.count)} pours</span>
                   <span>v{heroApp.resources?.latest_version || '1.0.0'}</span>
                   <span>{heroApp.resources?.kind === 'gui_app' ? 'Mac App' : 'CLI Tool'}</span>
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
+                    <StarButton resourceId={heroApp.resources?.id} initialIsStarred={userBookmarks.has(heroApp.resources?.id)} />
+                    <SaveToCollectionButton resourceId={heroApp.resources?.id} />
+                  </div>
                 </div>
               </div>
-              <div className="hero-icon-wrapper">
+              <div className="hero-icon-wrapper" style={{ position: 'relative', zIndex: 2 }}>
                 {heroApp.resources?.kind === 'gui_app' ? (
                   <AppIcon token={heroApp.resources?.token} isHero />
                 ) : (
@@ -189,7 +225,7 @@ export default async function Home(props: PageProps) {
                 )}
               </div>
             </div>
-          </Link>
+          </div>
         )}
 
         <div className="section-header">
@@ -199,11 +235,56 @@ export default async function Home(props: PageProps) {
             <SortDropdown />
           </div>
         </div>
+        
+        {/* Featured Collections (Only show on default home) */}
+        {!query && !category && featuredCollections && featuredCollections.length > 0 && (
+          <div style={{ marginBottom: '3rem' }}>
+            <div className="section-header" style={{ marginTop: '0' }}>
+              <h2 style={{ fontSize: '1.2rem', color: 'var(--text-secondary)' }}>Featured Collections</h2>
+              <Link href="/collections" style={{ textDecoration: 'none', color: 'var(--accent-orange)', fontSize: '0.9rem', fontWeight: 600 }}>View All →</Link>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              gap: '1rem', 
+              overflowX: 'auto', 
+              paddingBottom: '1rem',
+              scrollbarWidth: 'none', // Firefox
+              WebkitOverflowScrolling: 'touch'
+            }} className="hide-scrollbar">
+              {featuredCollections.map(c => (
+                <Link key={c.id} href={`/collections/${c.slug}`} style={{ textDecoration: 'none', flexShrink: 0, width: '280px' }}>
+                  <div className="collection-card" style={{
+                    background: `linear-gradient(135deg, ${c.gradient_from}, ${c.gradient_to})`,
+                    padding: '1.5rem',
+                    borderRadius: '12px',
+                    color: 'white',
+                    height: '140px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'flex-end',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    boxShadow: 'var(--shadow-md)',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                  }}>
+                    <span style={{ fontSize: '2.5rem', position: 'absolute', top: '0.5rem', right: '0.5rem', opacity: 0.8 }}>
+                      {c.emoji}
+                    </span>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.2rem', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                      {c.title}
+                    </h3>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="app-grid">
           {gridApps.map((app: any, idx: number) => (
-            <Link key={idx} href={`/app/${app.resources?.token}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div key={idx} style={{ position: 'relative' }}>
               <div className="app-card">
+                <Link href={`/app/${app.resources?.token}`} style={{ position: 'absolute', inset: 0, zIndex: 1 }} />
                 <div className="card-header">
                   <div className="app-icon">
                     {app.resources?.kind === 'gui_app' ? (
@@ -212,8 +293,14 @@ export default async function Home(props: PageProps) {
                       <TerminalSquare size={24} strokeWidth={1.5} color="var(--text-secondary)" />
                     )}
                   </div>
-                  <div className="app-info">
-                    <div className="app-name">{app.resources?.display_name || app.resources?.token}</div>
+                  <div className="app-info" style={{ position: 'relative', zIndex: 2 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+                      <div className="app-name" style={{ marginBottom: 0 }}>{app.resources?.display_name || app.resources?.token}</div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <StarButton resourceId={app.resources?.id} initialIsStarred={userBookmarks.has(app.resources?.id)} />
+                        <SaveToCollectionButton resourceId={app.resources?.id} />
+                      </div>
+                    </div>
                     <div className="app-category">{app.resources?.kind === 'gui_app' ? 'Mac App' : 'CLI Tool'}</div>
                   </div>
                 </div>
@@ -227,7 +314,7 @@ export default async function Home(props: PageProps) {
                   </div>
                 </div>
               </div>
-            </Link>
+            </div>
           ))}
           {apps.length === 0 && (
             <div style={{ color: 'var(--text-muted)', gridColumn: '1 / -1', textAlign: 'center', padding: '3rem 0' }}>
