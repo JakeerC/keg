@@ -14,22 +14,29 @@ export default function StarButton({ resourceId, initialIsStarred }: { resourceI
     if (initialIsStarred !== undefined) {
       setIsStarred(initialIsStarred);
       setLoading(false);
-      return;
+    } else {
+      const checkStar = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { data } = await supabase
+            .from('bookmarks')
+            .select('id')
+            .eq('resource_id', resourceId)
+            .single();
+          if (data) setIsStarred(true);
+        }
+        setLoading(false);
+      };
+      checkStar();
     }
 
-    const checkStar = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data } = await supabase
-          .from('bookmarks')
-          .select('id')
-          .eq('resource_id', resourceId)
-          .single();
-        if (data) setIsStarred(true);
+    const handleBookmarkChange = (e: any) => {
+      if (e.detail.resourceId === resourceId) {
+        setIsStarred(e.detail.isStarred);
       }
-      setLoading(false);
     };
-    checkStar();
+    window.addEventListener('bookmarkChanged', handleBookmarkChange);
+    return () => window.removeEventListener('bookmarkChanged', handleBookmarkChange);
   }, [resourceId, supabase, initialIsStarred]);
 
   const toggleStar = async (e: React.MouseEvent) => {
@@ -44,6 +51,7 @@ export default function StarButton({ resourceId, initialIsStarred }: { resourceI
 
     const previousState = isStarred;
     setIsStarred(!previousState);
+    window.dispatchEvent(new CustomEvent('bookmarkChanged', { detail: { resourceId, isStarred: !previousState } }));
 
     if (previousState) {
       const { error } = await supabase
@@ -54,6 +62,7 @@ export default function StarButton({ resourceId, initialIsStarred }: { resourceI
         
       if (error) {
         setIsStarred(previousState);
+        window.dispatchEvent(new CustomEvent('bookmarkChanged', { detail: { resourceId, isStarred: previousState } }));
         console.error('Failed to unstar:', error);
       }
     } else {
@@ -61,8 +70,9 @@ export default function StarButton({ resourceId, initialIsStarred }: { resourceI
         .from('bookmarks')
         .insert({ resource_id: resourceId, user_id: session.user.id });
         
-      if (error) {
+      if (error && error.code !== '23505') { // Ignore unique constraint violation if already starred
         setIsStarred(previousState);
+        window.dispatchEvent(new CustomEvent('bookmarkChanged', { detail: { resourceId, isStarred: previousState } }));
         console.error('Failed to star:', error);
       }
     }

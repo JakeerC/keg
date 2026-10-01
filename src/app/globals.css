@@ -1,55 +1,57 @@
 :root {
   /* Light Theme (Warm Beige/Mac Aesthetic) */
   --bg-sidebar: rgba(255, 249, 242, 0.85);
-  --bg-main: #F3ECE1;
+  --bg-main: #f3ece1;
   --bg-card: rgba(255, 255, 255, 0.5);
   --bg-card-hover: rgba(255, 255, 255, 0.8);
-  --text-primary: #2D2A26;
-  --text-secondary: #7A756D;
-  --text-muted: #A39E96;
+  --text-primary: #2d2a26;
+  --text-secondary: #7a756d;
+  --text-muted: #a39e96;
   --border-color: rgba(0, 0, 0, 0.05);
   --border-light: rgba(255, 255, 255, 0.5);
-  
-  --accent-orange: #E05D47;
-  --accent-green: #3D8B66;
+
+  --accent-orange: #e05d47;
+  --accent-green: #3d8b66;
   --bg-green-muted: rgba(61, 139, 102, 0.15);
-  
+
   --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.03);
   --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.06);
-  
+
   --dot-color: rgba(0, 0, 0, 0.06);
   --glass-edge: rgba(255, 255, 255, 0.8);
   --glass-highlight: rgba(255, 255, 255, 0.4);
   --glass-shadow: rgba(0, 0, 0, 0.06);
   --glass-shadow-hover: rgba(0, 0, 0, 0.12);
-  
-  --font-sans: var(--font-manrope), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  --font-sans:
+    var(--font-manrope), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
 }
 
 [data-theme='dark'] {
-    /* Dark Theme (Liquid Glass Dark) */
-    --bg-sidebar: rgba(19, 17, 26, 0.85);
-    --bg-main: #14121A;
-    --bg-card: rgba(42, 39, 53, 0.4);
-    --bg-card-hover: rgba(52, 49, 65, 0.75);
-    --text-primary: #F0EDF5;
-    --text-secondary: #A19BAF;
-    --text-muted: #6B657A;
-    --border-color: rgba(255, 255, 255, 0.04);
-    --border-light: rgba(255, 255, 255, 0.06);
-    
-    --accent-orange: #F26A5A;
-    --accent-green: #4FB083;
-    --bg-green-muted: rgba(79, 176, 131, 0.15);
-    
-    --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 16px 48px rgba(0, 0, 0, 0.5);
+  /* Dark Theme (Liquid Glass Dark) */
+  --bg-sidebar: rgba(19, 17, 26, 0.85);
+  --bg-main: #14121a;
+  --bg-card: rgba(42, 39, 53, 0.4);
+  --bg-card-hover: rgba(52, 49, 65, 0.75);
+  --text-primary: #f0edf5;
+  --text-secondary: #a19baf;
+  --text-muted: #6b657a;
+  --border-color: rgba(255, 255, 255, 0.04);
+  --border-light: rgba(255, 255, 255, 0.06);
 
-    --dot-color: rgba(255, 255, 255, 0.06);
-    --glass-edge: rgba(255, 255, 255, 0.5);
-    --glass-highlight: rgba(255, 255, 255, 0.15);
-    --glass-shadow: rgba(0, 0, 0, 0.3);
-    --glass-shadow-hover: rgba(0, 0, 0, 0.5);
+  --accent-orange: #f26a5a;
+  --accent-green: #4fb083;
+  --bg-green-muted: rgba(79, 176, 131, 0.15);
+
+  --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 16px 48px rgba(0, 0, 0, 0.5);
+
+  --dot-color: rgba(255, 255, 255, 0.06);
+  --glass-edge: rgba(255, 255, 255, 0.5);
+  --glass-highlight: rgba(255, 255, 255, 0.15);
+  --glass-shadow: rgba(0, 0, 0, 0.3);
+  --glass-shadow-hover: rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -67,8 +69,10 @@
 }
 
 .collection-card {
-  backdrop-filter: blur(8px) url(#lg-filter) saturate(1.8) brightness(1.15) contrast(1.05);
-  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+  backdrop-filter: blur(8px) url(#lg-filter) saturate(1.8) brightness(1.15)
+    contrast(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15)
+    contrast(1.05);
   box-shadow:
     inset 0 0 0 1px var(--glass-highlight),
     inset 1.5px 1.5px 0 var(--glass-edge),
@@ -92,7 +96,8 @@
   -ms-overflow-style: none;
 }
 
-html, body {
+html,
+body {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
@@ -116,6 +121,12 @@ body {
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
+  /* background-image: 
+    radial-gradient(circle at top right, rgba(242, 106, 90, 0.05), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(79, 176, 131, 0.05), transparent 40%),
+    radial-gradient(var(--border-color) 1px, transparent 1px);
+  background-position: 0 0, 0 0, 0 0;
+  background-size: 100% 100%, 100% 100%, 20px 20px; */
 }
 
 .sidebar {
@@ -177,7 +188,9 @@ body {
   outline: none;
   transition: all 0.2s;
   backdrop-filter: blur(8px);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1), var(--shadow-sm);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.1),
+    var(--shadow-sm);
 }
 
 .search-input::placeholder {
@@ -189,7 +202,9 @@ body {
   border-color: var(--accent-orange);
   width: 340px;
   background-color: var(--bg-card-hover);
-  box-shadow: 0 0 0 3px rgba(224, 93, 71, 0.2), var(--shadow-md);
+  box-shadow:
+    0 0 0 3px rgba(224, 93, 71, 0.2),
+    var(--shadow-md);
 }
 
 /* Scrollable Content */
@@ -209,7 +224,11 @@ body {
   left: 20%;
   width: 60%;
   height: 500px;
-  background: radial-gradient(circle, rgba(79, 176, 131, 0.08) 0%, rgba(28, 26, 36, 0) 70%);
+  background: radial-gradient(
+    circle,
+    rgba(79, 176, 131, 0.08) 0%,
+    rgba(28, 26, 36, 0) 70%
+  );
   z-index: -1;
   pointer-events: none;
 }
@@ -227,8 +246,10 @@ body {
   overflow: hidden;
 
   /* Liquid Glass Styles */
-  backdrop-filter: blur(8px) url(#lg-filter) saturate(1.8) brightness(1.15) contrast(1.05);
-  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+  backdrop-filter: blur(8px) url(#lg-filter) saturate(1.8) brightness(1.15)
+    contrast(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15)
+    contrast(1.05);
   box-shadow:
     inset 0 0 0 1px var(--glass-highlight),
     inset 1.5px 1.5px 0 var(--glass-edge),
@@ -292,13 +313,17 @@ body {
 .hero-icon-wrapper {
   width: 120px;
   height: 120px;
-  background: var(--bg-main);
-  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1), var(--shadow-md);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-highlight),
+    inset 1.5px 1.5px 0 var(--glass-edge),
+    inset 0 0 12px var(--glass-shadow),
+    0 8px 32px var(--shadow-sm);
   font-size: 3rem;
   color: var(--text-primary);
   font-weight: 300;
@@ -363,10 +388,12 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  
+
   /* Liquid Glass Styles */
-  backdrop-filter: blur(8px) url(#lg-filter) saturate(1.8) brightness(1.15) contrast(1.05);
-  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+  backdrop-filter: blur(8px) url(#lg-filter) saturate(1.8) brightness(1.15)
+    contrast(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15)
+    contrast(1.05);
   box-shadow:
     inset 0 0 0 1px var(--glass-highlight),
     inset 1.5px 1.5px 0 var(--glass-edge),
@@ -396,13 +423,17 @@ body {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background-color: var(--bg-main);
+  background-color: var(--bg-card);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-light);
   font-size: 1.2rem;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-highlight),
+    inset 1.5px 1.5px 0 var(--glass-edge),
+    inset 0 0 12px var(--glass-shadow),
+    0 4px 16px var(--shadow-sm);
 }
 
 .app-icon img {
@@ -471,10 +502,12 @@ body {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  
+
   /* Liquid Glass Styles */
-  backdrop-filter: blur(8px) url(#lg-filter) saturate(1.8) brightness(1.15) contrast(1.05);
-  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+  backdrop-filter: blur(8px) url(#lg-filter) saturate(1.8) brightness(1.15)
+    contrast(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15)
+    contrast(1.05);
   box-shadow:
     inset 0 0 0 1px var(--glass-highlight),
     inset 1px 1px 0 var(--glass-edge),
@@ -505,7 +538,7 @@ body {
 }
 
 .logo-icon {
-  background: linear-gradient(135deg, var(--accent-orange), #C94030);
+  background: linear-gradient(135deg, var(--accent-orange), #c94030);
   width: 24px;
   height: 24px;
   border-radius: 6px;
@@ -557,7 +590,7 @@ body {
 .nav-item.active {
   background-color: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .nav-icon {
@@ -586,19 +619,34 @@ body {
 
 /* Skeleton Loading */
 @keyframes skeleton-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .skeleton-line {
-  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--bg-card) 25%,
+    var(--bg-card-hover) 50%,
+    var(--bg-card) 75%
+  );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
   border-radius: 6px;
 }
 
-.skeleton-icon, .skeleton-icon-sm {
-  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
+.skeleton-icon,
+.skeleton-icon-sm {
+  background: linear-gradient(
+    90deg,
+    var(--bg-card) 25%,
+    var(--bg-card-hover) 50%,
+    var(--bg-card) 75%
+  );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
@@ -613,7 +661,12 @@ body {
   width: 280px;
   height: 40px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--bg-card) 25%,
+    var(--bg-card-hover) 50%,
+    var(--bg-card) 75%
+  );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }

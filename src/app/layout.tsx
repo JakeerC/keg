@@ -52,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </filter>
         </svg>
         <style dangerouslySetInnerHTML={{ __html: `
-          .app-card, .hero-card, .collection-card, .install-btn {
+          .app-card, .hero-card, .collection-card, .install-btn, .app-icon, .hero-icon-wrapper {
             backdrop-filter: url(#lg-filter) blur(8px) saturate(1.8) brightness(1.15) !important;
             -webkit-backdrop-filter: url(#lg-filter) blur(8px) saturate(1.8) brightness(1.15) !important;
           }
