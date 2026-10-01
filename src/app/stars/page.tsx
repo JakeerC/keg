@@ -77,9 +77,9 @@ export default async function StarsPage() {
                     )}
                   </div>
                   <div className="app-info" style={{ position: 'relative', zIndex: 2 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.2rem', gap: '0.5rem' }}>
                       <div className="app-name" style={{ marginBottom: 0 }}>{app.display_name || app.token}</div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                         <StarButton resourceId={app.id} initialIsStarred={true} />
                         <SaveToCollectionButton resourceId={app.id} />
                       </div>

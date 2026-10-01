@@ -303,9 +303,9 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
                             )}
                           </div>
                           <div className="app-info" style={{ position: 'relative', zIndex: 2 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem', gap: '0.5rem' }}>
                               <div className="app-name" style={{ marginBottom: 0 }}>{app.display_name || app.token}</div>
-                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                                 <StarButton resourceId={app.id} initialIsStarred={userBookmarks.has(app.id)} />
                                 <SaveToCollectionButton resourceId={app.id} />
                               </div>

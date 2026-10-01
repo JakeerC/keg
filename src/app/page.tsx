@@ -294,9 +294,9 @@ export default async function Home(props: PageProps) {
                     )}
                   </div>
                   <div className="app-info" style={{ position: 'relative', zIndex: 2 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.2rem', gap: '0.5rem' }}>
                       <div className="app-name" style={{ marginBottom: 0 }}>{app.resources?.display_name || app.resources?.token}</div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                         <StarButton resourceId={app.resources?.id} initialIsStarred={userBookmarks.has(app.resources?.id)} />
                         <SaveToCollectionButton resourceId={app.resources?.id} />
                       </div>
