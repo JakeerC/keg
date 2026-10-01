@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 
 export default function AppIcon({ token, isHero }: { token: string; isHero?: boolean }) {
   const [error, setError] = useState(false);
@@ -12,11 +13,16 @@ export default function AppIcon({ token, isHero }: { token: string; isHero?: boo
   }
 
   return (
-    <img 
-      src={`https://raw.githubusercontent.com/alielsokary/CaskFlow/icons/${token}.png`} 
-      alt=""
-      style={sizeClass}
-      onError={() => setError(true)}
-    />
+    <div style={{ position: 'relative', ...(sizeClass || { width: '48px', height: '48px' }) }}>
+      <Image 
+        src={`https://raw.githubusercontent.com/alielsokary/CaskFlow/icons/${token}.png`} 
+        alt={`${token} icon`}
+        fill
+        unoptimized
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        style={{ objectFit: 'contain', borderRadius: sizeClass?.borderRadius || '12px' }}
+        onError={() => setError(true)}
+      />
+    </div>
   );
 }

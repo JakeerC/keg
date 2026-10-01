@@ -13,15 +13,24 @@ export default function CollectionActions({ collectionId, initialIsPrivate }: { 
   const togglePrivacy = async () => {
     const newState = !isPrivate;
     setIsPrivate(newState);
-    await supabase.from('collections').update({ is_private: newState }).eq('id', collectionId);
+    const { error } = await supabase.from('collections').update({ is_private: newState }).eq('id', collectionId);
+    if (error) {
+      alert(`Failed to update privacy: ${error.message}`);
+      setIsPrivate(!newState); // Revert UI
+    }
     router.refresh();
   };
 
   const deleteCollection = async () => {
     if (!confirm("Are you sure you want to delete this collection? This cannot be undone.")) return;
     setIsDeleting(true);
-    await supabase.from('collections').delete().eq('id', collectionId);
-    router.push('/my-collections');
+    const { error } = await supabase.from('collections').delete().eq('id', collectionId);
+    if (error) {
+      alert(`Failed to delete collection: ${error.message}`);
+      setIsDeleting(false);
+    } else {
+      router.push('/my-collections');
+    }
   };
 
   return (

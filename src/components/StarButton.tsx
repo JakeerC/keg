@@ -7,14 +7,18 @@ import { useRouter } from 'next/navigation';
 export default function StarButton({ resourceId, initialIsStarred }: { resourceId: string, initialIsStarred?: boolean }) {
   const [isStarred, setIsStarred] = useState(initialIsStarred || false);
   const [loading, setLoading] = useState(initialIsStarred === undefined);
+  const [prevInitial, setPrevInitial] = useState(initialIsStarred);
   const supabase = createSupabaseBrowser();
   const router = useRouter();
 
+  if (initialIsStarred !== prevInitial) {
+    setPrevInitial(initialIsStarred);
+    setIsStarred(initialIsStarred || false);
+    setLoading(initialIsStarred === undefined);
+  }
+
   useEffect(() => {
-    if (initialIsStarred !== undefined) {
-      setIsStarred(initialIsStarred);
-      setLoading(false);
-    } else {
+    if (initialIsStarred === undefined) {
       const checkStar = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
@@ -30,9 +34,10 @@ export default function StarButton({ resourceId, initialIsStarred }: { resourceI
       checkStar();
     }
 
-    const handleBookmarkChange = (e: any) => {
-      if (e.detail.resourceId === resourceId) {
-        setIsStarred(e.detail.isStarred);
+    const handleBookmarkChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{resourceId: string, isStarred: boolean}>;
+      if (customEvent.detail.resourceId === resourceId) {
+        setIsStarred(customEvent.detail.isStarred);
       }
     };
     window.addEventListener('bookmarkChanged', handleBookmarkChange);

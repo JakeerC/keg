@@ -1,7 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
-import { useRouter } from 'next/navigation';
+
 import { Mail } from 'lucide-react';
 import Link from 'next/link';
 
@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const supabase = createSupabaseBrowser();
-  const router = useRouter();
+
 
   const handleOAuthLogin = async (provider: 'github' | 'google') => {
     await supabase.auth.signInWithOAuth({

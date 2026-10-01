@@ -1,4 +1,3 @@
-import { supabase } from '@/lib/supabase';
 import { createSupabaseServer } from '@/lib/supabase-server';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import AuthButton from '@/components/AuthButton';
@@ -6,7 +5,7 @@ import AppIcon from '@/components/AppIcon';
 import StarButton from '@/components/StarButton';
 import SaveToCollectionButton from '@/components/SaveToCollectionButton';
 import CollectionActions from '@/components/CollectionActions';
-import { TerminalSquare, ArrowLeft, Lock, Globe } from 'lucide-react';
+import { TerminalSquare, ArrowLeft, Lock } from 'lucide-react';
 import Link from 'next/link';
 
 export const revalidate = 0;
@@ -15,7 +14,10 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
   const params = await props.params;
   const slug = params.slug;
 
-  const { data: collection } = await supabase
+  const supabaseServer = await createSupabaseServer();
+  const { data: { session } } = await supabaseServer.auth.getSession();
+
+  const { data: collection } = await supabaseServer
     .from('collections')
     .select('*')
     .eq('slug', slug)
@@ -34,7 +36,7 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
     );
   }
 
-  const { data: items } = await supabase
+  const { data: items } = await supabaseServer
     .from('collection_items')
     .select(`
       resources (
@@ -49,11 +51,15 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
     .eq('collection_id', collection.id)
     .order('sort_order', { ascending: true });
 
-  const apps = items?.map(item => item.resources).filter(Boolean) || [];
+  const apps = (items?.map(item => item.resources).filter(Boolean) || []) as unknown as Array<{
+    id: string;
+    token: string;
+    display_name: string | null;
+    description: string | null;
+    latest_version: string | null;
+    kind: string;
+  }>;
 
-  const supabaseServer = await createSupabaseServer();
-  const { data: { session } } = await supabaseServer.auth.getSession();
-  
   let userBookmarks = new Set<string>();
   if (session) {
     const { data: bookmarks } = await supabaseServer
@@ -111,7 +117,7 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
         </div>
 
         <div className="app-grid">
-          {apps.map((app: any) => (
+          {apps.map((app) => (
             <div key={app.id} style={{ position: 'relative' }}>
               <div className="app-card">
                 <Link href={`/app/${app.token}`} style={{ position: 'absolute', inset: 0, zIndex: 1 }} />

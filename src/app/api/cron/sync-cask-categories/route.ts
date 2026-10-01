@@ -1,13 +1,23 @@
-import { NextResponse } from 'next/server';
+
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { verifyCronAuth } from '@/lib/cron-auth';
+import { runIngestionJob, fetchWithTimeout } from '@/lib/ingestion-runner';
 
 export const revalidate = 0;
+export const maxDuration = 300;
 
-export async function GET() {
-  try {
-    console.log('Fetching CaskFlow categories.json...');
-    const res = await fetch('https://github.com/alielsokary/CaskFlow/releases/latest/download/categories.json');
-    if (!res.ok) throw new Error(`Failed to fetch categories.json: ${res.status}`);
+export async function GET(request: Request) {
+  const authResponse = verifyCronAuth(request);
+  if (authResponse) return authResponse;
+
+  return runIngestionJob('sync-cask-categories', async (runId) => {
+    let processed = 0;
+    let failed = 0;
+    let partial = false;
+    let error_summary = '';
+
+    console.log(`[${runId}] Fetching CaskFlow categories.json...`);
+    const res = await fetchWithTimeout('https://github.com/alielsokary/CaskFlow/releases/latest/download/categories.json', 30000);
     const data = await res.json();
     
     const tokenToCategory = data.tokenToCategory;
@@ -26,7 +36,7 @@ export async function GET() {
     const categoryMap = new Map(dbCategories?.map(c => [c.slug, c.id]));
 
     const tokensToMap = Object.keys(tokenToCategory);
-    console.log(`Mapping ${tokensToMap.length} Casks to Categories...`);
+    console.log(`[${runId}] Mapping ${tokensToMap.length} Casks to Categories...`);
     const payload = [];
 
     // Chunk the tokens to fetch their IDs from Supabase
@@ -42,7 +52,10 @@ export async function GET() {
         .in('token', chunk);
 
       if (error) {
-        console.error('Error fetching chunk:', error.message);
+        console.error(`[${runId}] Error fetching chunk:`, error.message);
+        failed += chunk.length;
+        partial = true;
+        error_summary += `DB fetch error: ${error.message}. `;
         continue;
       }
       if (!resources) continue;
@@ -51,8 +64,8 @@ export async function GET() {
         const catInfo = tokenToCategory[resource.token];
         if (!catInfo) continue;
 
-        const primarySlug = (catInfo as any).primary;
-        let normalizedSlug = CASKFLOW_TO_DB_MAP[primarySlug] || primarySlug.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+        const primarySlug = (catInfo as { primary: string }).primary;
+        const normalizedSlug = CASKFLOW_TO_DB_MAP[primarySlug] || primarySlug.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
         
         let categoryId = categoryMap.get(normalizedSlug);
         if (!categoryId) {
@@ -76,12 +89,11 @@ export async function GET() {
     }
 
     if (payload.length === 0) {
-      return NextResponse.json({ success: true, message: 'No mappings found or nothing to insert.' });
+      return { processed: 0, skipped: 0, failed: 0 };
     }
 
     // 4. Batch insert in chunks of 1000
-    console.log(`Inserting ${payload.length} categorizations...`);
-    let insertedCount = 0;
+    console.log(`[${runId}] Inserting ${payload.length} categorizations...`);
     const chunkSize = 1000;
     
     for (let i = 0; i < payload.length; i += chunkSize) {
@@ -92,19 +104,21 @@ export async function GET() {
         .upsert(chunk, { onConflict: 'resource_id,category_id' }); 
         
       if (error) {
-        console.error('Batch insert error:', error.message);
+        console.error(`[${runId}] Batch insert error:`, error.message);
+        failed += chunk.length;
+        partial = true;
+        error_summary += `Batch upsert error: ${error.message}. `;
       } else {
-        insertedCount += chunk.length;
+        processed += chunk.length;
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Successfully mapped ${insertedCount} Casks to Categories from CaskFlow.` 
-    });
-
-  } catch (error: any) {
-    console.error('Sync cask categories error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
+    return {
+      processed,
+      skipped: 0,
+      failed,
+      partial,
+      error_summary: error_summary || undefined
+    };
+  });
 }

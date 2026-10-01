@@ -53,10 +53,14 @@ Run the checks relevant to the change:
 
 ```bash
 npm run lint
+npm test
 npm run build
 ```
 
-There is currently no `npm test` script. Do not report tests as passing unless a real test command has been added and run. If an existing check fails, report the failure and its output summary rather than bypassing it.
+We now have an automated testing suite using `vitest` and `@testing-library/react`. 
+**Test Environment Notes:**
+- `npm test` runs our secret-free unit tests and UI interaction tests. These run seamlessly in CI and local environments without requiring a database.
+- Full integration tests involving Postgres views, migrations, or Row-Level Security (RLS) require a configured local Supabase environment (e.g., `npx supabase start`). These should be validated locally before committing, and are not yet covered by the automated CI `npm test` script.
 
 For data/auth changes, also verify the affected user-visible flow and RLS behavior with a configured development Supabase project. For ingestion changes, verify authorization, idempotency, partial failure handling, and response counts.
 

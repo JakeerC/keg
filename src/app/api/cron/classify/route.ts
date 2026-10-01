@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { GoogleGenAI } from '@google/genai';
+import { verifyCronAuth } from '@/lib/cron-auth';
+import { runIngestionJob } from '@/lib/ingestion-runner';
+
+export const revalidate = 0;
+export const maxDuration = 300; // Vercel maximum duration
 
 // The 17 standard CaskFlow categories + some extra
 const CATEGORIES = [
@@ -23,14 +28,22 @@ const CATEGORIES = [
   { slug: 'uncategorized', display_name: 'Other / Uncategorized' }
 ];
 
-export async function GET() {
+export async function GET(request: Request) {
+  const authResponse = verifyCronAuth(request);
+  if (authResponse) return authResponse;
+
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: 'GEMINI_API_KEY is not configured.' }, { status: 500 });
   }
 
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-  try {
+  return runIngestionJob('classify-formulae', async (runId) => {
+    let processed = 0;
+    let failed = 0;
+    let skipped = 0;
+    let error_summary = '';
+
     // 1. Ensure all categories exist in the DB and get their IDs
     for (const cat of CATEGORIES) {
       await supabaseAdmin.from('categories').upsert(
@@ -43,7 +56,7 @@ export async function GET() {
     const categoryMap = new Map(dbCategories?.map(c => [c.slug, c.id]));
 
     // 2. Fetch up to 200 Formulae (CLI tools) and see which are uncategorized
-    console.log('Fetching uncategorized resources...');
+    console.log(`[${runId}] Fetching uncategorized resources...`);
     const { data: resources, error: fetchError } = await supabaseAdmin
       .from('resources')
       .select('id, token, description, homepage, resource_categories(category_id)')
@@ -57,15 +70,13 @@ export async function GET() {
     // Filter in JS to find ones with no categories mapped
     const uncategorized = resources
       .filter(r => !r.resource_categories || r.resource_categories.length === 0)
-      .slice(0, 50); // Increased batch size to 50 per run
+      .slice(0, 50); // 50 per run
 
     if (uncategorized.length === 0) {
-      return NextResponse.json({ success: true, message: 'All fetched resources are already categorized.' });
+      return { processed: 0, skipped: 0, failed: 0 };
     }
 
-    console.log(`Classifying ${uncategorized.length} resources via Gemini...`);
-    
-    let successCount = 0;
+    console.log(`[${runId}] Classifying ${uncategorized.length} resources via Gemini...`);
     
     // 3. Classify each using Gemini
     for (const app of uncategorized) {
@@ -91,26 +102,35 @@ Output ONLY the exact category slug from the list above. Do not output anything 
         const categoryId = categoryMap.get(chosenSlug);
 
         if (categoryId) {
-          await supabaseAdmin.from('resource_categories').insert({
+          const { error: insertError } = await supabaseAdmin.from('resource_categories').insert({
             resource_id: app.id,
             category_id: categoryId,
             is_primary: true
           });
-          successCount++;
-          console.log(`✅ Classified ${app.token} -> ${chosenSlug}`);
+          if (insertError) {
+            console.error(`[${runId}] DB insert failed for ${app.token}:`, insertError);
+            failed++;
+            error_summary += `DB error for ${app.token}: ${insertError.message}. `;
+          } else {
+            processed++;
+            console.log(`[${runId}] ✅ Classified ${app.token} -> ${chosenSlug}`);
+          }
+        } else {
+           skipped++;
         }
       } catch (err) {
-        console.error(`Failed to classify ${app.token}:`, err);
+        console.error(`[${runId}] Failed to classify ${app.token}:`, err);
+        failed++;
+        error_summary += `API error for ${app.token}: ${err instanceof Error ? err.message : String(err)}. `;
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Successfully classified ${successCount} out of ${uncategorized.length} resources.` 
-    });
-
-  } catch (error: any) {
-    console.error('Classification error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
+    return {
+      processed,
+      skipped,
+      failed,
+      partial: failed > 0,
+      error_summary: error_summary || undefined
+    };
+  });
 }

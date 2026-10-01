@@ -1,13 +1,21 @@
-import { NextResponse } from 'next/server';
+
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { verifyCronAuth } from '@/lib/cron-auth';
+import { runIngestionJob, fetchWithTimeout } from '@/lib/ingestion-runner';
+
+export const revalidate = 0;
+export const maxDuration = 300; // Vercel maximum duration
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResponse = verifyCronAuth(request);
+  if (authResponse) return authResponse;
 
-  try {
+  return runIngestionJob('sync-homebrew', async (runId) => {
+    let processed = 0;
+    let failed = 0;
+    let partial = false;
+    let error_summary = '';
+
     // 1. Get the Homebrew source ID
     const { data: source } = await supabaseAdmin
       .from('sources')
@@ -16,20 +24,20 @@ export async function GET(request: Request) {
       .single();
 
     if (!source) {
-      return NextResponse.json({ error: 'Homebrew source not found. Did you run the seed script?' }, { status: 500 });
+      throw new Error('Homebrew source not found. Did you run the seed script?');
     }
     const sourceId = source.id;
 
     // 2. Fetch and upsert Formulae
-    console.log('Fetching Homebrew Formulae...');
-    const formulaRes = await fetch('https://formulae.brew.sh/api/formula.json');
+    console.log(`[${runId}] Fetching Homebrew Formulae...`);
+    const formulaRes = await fetchWithTimeout('https://formulae.brew.sh/api/formula.json', 30000);
     const formulae = await formulaRes.json();
     
-    console.log('Fetching Homebrew Casks...');
-    const caskRes = await fetch('https://formulae.brew.sh/api/cask.json');
+    console.log(`[${runId}] Fetching Homebrew Casks...`);
+    const caskRes = await fetchWithTimeout('https://formulae.brew.sh/api/cask.json', 30000);
     const casks = await caskRes.json();
 
-    const resourcesToUpsert: any[] = [];
+    const resourcesToUpsert: Record<string, unknown>[] = [];
 
     // Process formulae
     for (const formula of formulae) {
@@ -59,98 +67,122 @@ export async function GET(request: Request) {
       });
     }
 
-    console.log(`Upserting ${resourcesToUpsert.length} resources...`);
+    console.log(`[${runId}] Upserting ${resourcesToUpsert.length} resources...`);
     const chunkSize = 1000;
     for (let i = 0; i < resourcesToUpsert.length; i += chunkSize) {
       const chunk = resourcesToUpsert.slice(i, i + chunkSize);
       const { error } = await supabaseAdmin
         .from('resources')
         .upsert(chunk, { onConflict: 'source_id,token' });
-      if (error) console.error('Error upserting chunk:', error);
+      
+      if (error) {
+        console.error(`[${runId}] Error upserting chunk:`, error);
+        partial = true;
+        failed += chunk.length;
+        error_summary += `Resource upsert error: ${error.message}. `;
+      } else {
+        processed += chunk.length;
+      }
     }
 
     // 3. Fetch Analytics
-    console.log('Fetching 30d Analytics for Formulae (install-on-request)...');
-    const formulaAnalyticsRes = await fetch('https://formulae.brew.sh/api/analytics/install-on-request/30d.json');
-    const formulaAnalyticsData = await formulaAnalyticsRes.json();
+    let snapshotsInserted = 0;
+    try {
+      const windows = ['30d', '90d', '365d'];
+      const today = new Date().toISOString().split('T')[0];
+      const snapshotsToInsert: Record<string, unknown>[] = [];
+      const tokensToFetch = new Set<string>();
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allData: Record<string, any> = { formula: {}, cask: {} };
 
-    console.log('Fetching 30d Analytics for Casks (cask-install)...');
-    const caskAnalyticsRes = await fetch('https://formulae.brew.sh/api/analytics/cask-install/30d.json');
-    const caskAnalyticsData = await caskAnalyticsRes.json();
-
-    const topFormulae = formulaAnalyticsData.items.slice(0, 1000); 
-    const topCasks = caskAnalyticsData.items.slice(0, 1000); 
-
-    const tokensToFetch = [
-      ...topFormulae.map((i: any) => i.formula),
-      ...topCasks.map((i: any) => i.cask)
-    ];
-
-    // 4. Map to IDs using specific tokens to avoid the 1000 row fetch limit
-    console.log('Fetching resource IDs for analytics mapping...');
-    const resourceMap = new Map();
-    
-    // Fetch in chunks to avoid URL too long / max query size
-    const tokenChunkSize = 200;
-    for (let i = 0; i < tokensToFetch.length; i += tokenChunkSize) {
-      const chunk = tokensToFetch.slice(i, i + tokenChunkSize);
-      const { data: existingResources } = await supabaseAdmin
-        .from('resources')
-        .select('id, token')
-        .eq('source_id', sourceId)
-        .in('token', chunk);
+      for (const window of windows) {
+        console.log(`[${runId}] Fetching ${window} Analytics...`);
+        const fRes = await fetchWithTimeout(`https://formulae.brew.sh/api/analytics/install-on-request/${window}.json`, 30000);
+        const formulaData = await fRes.json();
+        const cRes = await fetchWithTimeout(`https://formulae.brew.sh/api/analytics/cask-install/${window}.json`, 30000);
+        const caskData = await cRes.json();
         
-      if (existingResources) {
-        existingResources.forEach((r: any) => resourceMap.set(r.token, r.id));
+        allData.formula[window] = formulaData.items.slice(0, 1000);
+        allData.cask[window] = caskData.items.slice(0, 1000);
+        
+        allData.formula[window].forEach((i: { formula: string }) => tokensToFetch.add(i.formula));
+        allData.cask[window].forEach((i: { cask: string }) => tokensToFetch.add(i.cask));
       }
+
+      console.log(`[${runId}] Fetching resource IDs for analytics mapping...`);
+      const resourceMap = new Map();
+      const tokensArray = Array.from(tokensToFetch);
+      const tokenChunkSize = 200;
+      for (let i = 0; i < tokensArray.length; i += tokenChunkSize) {
+        const chunk = tokensArray.slice(i, i + tokenChunkSize);
+        const { data: existingResources } = await supabaseAdmin
+          .from('resources')
+          .select('id, token')
+          .eq('source_id', sourceId)
+          .in('token', chunk);
+          
+        if (existingResources) {
+          existingResources.forEach((r: { token: string, id: string }) => resourceMap.set(r.token, r.id));
+        }
+      }
+
+      for (const window of windows) {
+        for (const item of allData.formula[window]) {
+          const rId = resourceMap.get(item.formula);
+          if (rId) {
+            snapshotsToInsert.push({
+              resource_id: rId,
+              time_window: window,
+              metric: 'install-on-request',
+              count: parseInt(item.count.replace(/,/g, ''), 10),
+              captured_at: today
+            });
+          }
+        }
+        for (const item of allData.cask[window]) {
+          const rId = resourceMap.get(item.cask);
+          if (rId) {
+            snapshotsToInsert.push({
+              resource_id: rId,
+              time_window: window,
+              metric: 'cask-install',
+              count: parseInt(item.count.replace(/,/g, ''), 10),
+              captured_at: today
+            });
+          }
+        }
+      }
+
+      if (snapshotsToInsert.length > 0) {
+        console.log(`[${runId}] Upserting ${snapshotsToInsert.length} Analytics Snapshots...`);
+        const chunk_size = 1000;
+        for (let i = 0; i < snapshotsToInsert.length; i += chunk_size) {
+          const chunk = snapshotsToInsert.slice(i, i + chunk_size);
+          const { error } = await supabaseAdmin
+            .from('analytics_snapshots')
+            .upsert(chunk, { onConflict: 'resource_id,time_window,metric,captured_at' });
+          if (error) {
+            console.error(`[${runId}] Error upserting snapshots:`, error);
+            partial = true;
+            error_summary += `Analytics upsert error: ${error.message}. `;
+          } else {
+            snapshotsInserted += chunk.length;
+          }
+        }
+      }
+    } catch (analyticsError) {
+      console.error(`[${runId}] Error fetching/upserting analytics:`, analyticsError);
+      partial = true;
+      error_summary += `Analytics fetch error: ${analyticsError instanceof Error ? analyticsError.message : String(analyticsError)}. `;
     }
 
-    const snapshotsToInsert: any[] = [];
-    const today = new Date().toISOString().split('T')[0];
-
-    // Top 1000 formulae analytics
-    for (const item of topFormulae) {
-      const rId = resourceMap.get(item.formula);
-      if (rId) {
-        snapshotsToInsert.push({
-          resource_id: rId,
-          time_window: '30d',
-          metric: 'install-on-request',
-          count: parseInt(item.count.replace(/,/g, ''), 10),
-          captured_at: today
-        });
-      }
-    }
-
-    // Top 1000 cask analytics
-    for (const item of topCasks) {
-      const rId = resourceMap.get(item.cask);
-      if (rId) {
-        snapshotsToInsert.push({
-          resource_id: rId,
-          time_window: '30d',
-          metric: 'cask-install',
-          count: parseInt(item.count.replace(/,/g, ''), 10),
-          captured_at: today
-        });
-      }
-    }
-
-    if (snapshotsToInsert.length > 0) {
-      console.log(`Upserting ${snapshotsToInsert.length} Analytics Snapshots...`);
-      const chunk_size = 1000;
-      for (let i = 0; i < snapshotsToInsert.length; i += chunk_size) {
-        const chunk = snapshotsToInsert.slice(i, i + chunk_size);
-        const { error } = await supabaseAdmin
-          .from('analytics_snapshots')
-          .upsert(chunk, { onConflict: 'resource_id,time_window,metric,captured_at' });
-        if (error) console.error('Error upserting snapshots:', error);
-      }
-    }
-
-    return NextResponse.json({ success: true, message: `Sync executed. ${resourcesToUpsert.length} apps, ${snapshotsToInsert.length} analytics records.` });
-  } catch (error) {
-    console.error('Error during sync cron:', error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
-  }
+    return {
+      processed: processed + snapshotsInserted,
+      skipped: 0,
+      failed,
+      partial,
+      error_summary: error_summary || undefined
+    };
+  });
 }

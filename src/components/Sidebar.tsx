@@ -1,9 +1,12 @@
 "use client";
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { LayoutGrid, Star, TrendingUp, Clock, Sparkles, Music, Globe, Cloud, MessageSquare, PenTool, Terminal, Bitcoin, Gamepad2, MenuSquare, Briefcase, GraduationCap, Shield, Wrench, Video, Code, List, PanelLeft } from "lucide-react";
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
+
+import type { User } from '@supabase/supabase-js';
 
 export default function Sidebar() {
   const searchParams = useSearchParams();
@@ -11,7 +14,7 @@ export default function Sidebar() {
   const activeCategory = searchParams.get('category');
   const activeFilter = searchParams.get('filter');
   
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const supabase = createSupabaseBrowser();
 
@@ -45,7 +48,7 @@ export default function Sidebar() {
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
         <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', fontSize: '1.25rem', fontWeight: 700 }}>
-          <img src="/apple-touch-icon.png" alt="Keg Logo" style={{ width: '32px', height: '32px', borderRadius: '8px', boxShadow: 'var(--shadow-sm)' }} />
+          <Image src="/apple-touch-icon.png" alt="Keg Logo" width={32} height={32} style={{ borderRadius: '8px', boxShadow: 'var(--shadow-sm)' }} />
           <span className="logo-text">Keg</span>
         </div>
         <button 

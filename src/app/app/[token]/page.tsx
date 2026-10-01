@@ -7,7 +7,7 @@ import StarButton from '@/components/StarButton';
 import SaveToCollectionButton from '@/components/SaveToCollectionButton';
 import TerminalCommand from '@/components/TerminalCommand';
 import AnalyticsChart from '@/components/AnalyticsChart';
-import { TerminalSquare, Download, Globe, ArrowLeft, Command } from 'lucide-react';
+import { TerminalSquare, Globe, ArrowLeft, Command } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
@@ -43,7 +43,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
       .select('resource_id')
       .eq('user_id', session.user.id);
     if (bookmarks) {
-      userBookmarks = new Set(bookmarks.map((b: any) => b.resource_id));
+      userBookmarks = new Set(bookmarks.map((b: { resource_id: string }) => b.resource_id));
     }
   }
 
@@ -73,7 +73,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
     return (
       <div className="content-scroll" style={{ padding: '4rem', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>App Not Found</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>We couldn't find an app with the token '{token}'.</p>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>We couldn&apos;t find an app with the token &apos;{token}&apos;.</p>
         <Link href="/">
           <button className="install-btn" style={{ margin: '0 auto' }}>
             <ArrowLeft size={16} /> Back to Browse
@@ -83,61 +83,74 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
     );
   }
 
+  const isCask = resource.kind === 'gui_app';
+
   // 2. Fetch all analytics
   const { data: analyticsData } = await supabase
-    .from('analytics_snapshots')
+    .from('latest_analytics_snapshots')
     .select('time_window, count')
     .eq('resource_id', resource.id)
-    .in('metric', ['install-on-request', 'cask-install'])
-    .order('captured_at', { ascending: false })
-    .limit(3);
+    .eq('metric', isCask ? 'cask-install' : 'install-on-request');
 
   // Parse analytics for recharts
   const chartData = [
-    { name: '30 Days', installs: analyticsData?.find(a => a.time_window === '30d')?.count || 0 },
-    { name: '90 Days', installs: analyticsData?.find(a => a.time_window === '90d')?.count || 0 },
-    { name: '365 Days', installs: analyticsData?.find(a => a.time_window === '365d')?.count || 0 }
+    { name: '30 Days', installs: analyticsData?.find(a => a.time_window === '30d')?.count },
+    { name: '90 Days', installs: analyticsData?.find(a => a.time_window === '90d')?.count },
+    { name: '365 Days', installs: analyticsData?.find(a => a.time_window === '365d')?.count }
   ];
   
   const count30d = chartData[0].installs;
 
-  const formatCount = (num: number) => {
+  const formatCount = (num: number | undefined) => {
+    if (num === undefined) return 'N/A';
     if (!num) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
   };
 
-  const categoryName = (resource.resource_categories as any)?.[0]?.categories?.display_name || 'Uncategorized';
-  const isCask = resource.kind === 'gui_app';
+  const categoryName = (resource.resource_categories as unknown as Array<{ categories: { display_name: string } }>)?.[0]?.categories?.display_name || 'Uncategorized';
 
   // 3. Fetch live Homebrew extra details
-  let extraDetails: any = null;
+  let extraDetails: {
+    auto_updates?: boolean;
+    caveats?: string;
+    conflicts_with?: Record<string, unknown>;
+    dependencies?: string[];
+  } | null = null;
   try {
     const res = await fetch(`https://formulae.brew.sh/api/${isCask ? 'cask' : 'formula'}/${token}.json`, { next: { revalidate: 3600 } });
     if (res.ok) {
       extraDetails = await res.json();
     }
-  } catch (e) {
+  } catch {
     // gracefully fail if homebrew API is down
   }
 
   // 4. Fetch related apps
-  const primaryCategoryId = (resource.resource_categories as any)?.[0]?.categories?.id;
-  let relatedApps: any[] = [];
+  const primaryCategoryId = (resource.resource_categories as unknown as Array<{ categories: { id: string } }>)?.[0]?.categories?.id;
+  let relatedApps: Array<{
+    resources: {
+      id: string;
+      token: string;
+      display_name: string | null;
+      kind: string;
+      latest_analytics_snapshots: { count: number }[];
+    }
+  }> = [];
   if (primaryCategoryId) {
     const { data } = await supabase
       .from('resource_categories')
       .select(`
         resources!inner (
           id, token, display_name, kind,
-          analytics_snapshots(count)
+          latest_analytics_snapshots(count)
         )
       `)
       .eq('category_id', primaryCategoryId)
       .neq('resources.token', token)
       .limit(5);
-    relatedApps = data || [];
+    relatedApps = (data || []) as unknown as typeof relatedApps;
   }
 
   return (
@@ -289,7 +302,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
                 scrollbarWidth: 'none',
                 WebkitOverflowScrolling: 'touch'
               }} className="hide-scrollbar">
-                {relatedApps.map((related: any) => {
+                {relatedApps.map((related) => {
                   const app = related.resources;
                   return (
                       <div key={app.id} className="app-card" style={{ position: 'relative', flexShrink: 0, width: '260px' }}>

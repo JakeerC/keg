@@ -3,10 +3,13 @@ import { useEffect, useState } from 'react';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LogOut, Star, User } from 'lucide-react';
+import Image from 'next/image';
+import { LogOut, Star } from 'lucide-react';
+
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export default function AuthButton() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const supabase = createSupabaseBrowser();
@@ -62,7 +65,7 @@ export default function AuthButton() {
         }}
       >
         {avatarUrl ? (
-          <img src={avatarUrl} alt="Avatar" style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid var(--border-color)' }} />
+          <Image src={avatarUrl} alt="Avatar" width={32} height={32} style={{ borderRadius: '50%', border: '1px solid var(--border-color)' }} />
         ) : (
           <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: 'var(--accent-orange)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
             {initial}

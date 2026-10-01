@@ -7,7 +7,7 @@ import CreateCollectionModal from './CreateCollectionModal';
 
 export default function SaveToCollectionButton({ resourceId }: { resourceId: string }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [collections, setCollections] = useState<any[]>([]);
+  const [collections, setCollections] = useState<Array<{id: string, title: string, emoji: string, is_private: boolean}>>([]);
   const [itemCounts, setItemCounts] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -76,15 +76,23 @@ export default function SaveToCollectionButton({ resourceId }: { resourceId: str
     setItemCounts(prev => ({ ...prev, [collectionId]: !isAdded }));
 
     if (isAdded) {
-      await supabase
+      const { error } = await supabase
         .from('collection_items')
         .delete()
         .eq('collection_id', collectionId)
         .eq('resource_id', resourceId);
+      if (error) {
+        alert(`Failed to remove item: ${error.message}`);
+        setItemCounts(prev => ({ ...prev, [collectionId]: true }));
+      }
     } else {
-      await supabase
+      const { error } = await supabase
         .from('collection_items')
         .insert({ collection_id: collectionId, resource_id: resourceId });
+      if (error) {
+        alert(`Failed to save item: ${error.message}`);
+        setItemCounts(prev => ({ ...prev, [collectionId]: false }));
+      }
     }
   };
 
@@ -117,7 +125,7 @@ export default function SaveToCollectionButton({ resourceId }: { resourceId: str
               <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>
             ) : collections.length === 0 ? (
               <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                You don't have any collections yet.
+                You don&apos;t have any collections yet.
               </div>
             ) : (
               collections.map(c => (

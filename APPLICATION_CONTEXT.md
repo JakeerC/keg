@@ -148,3 +148,4 @@ These are documented in more detail in [`ROADMAP.md`](./ROADMAP.md):
 - [`.github/copilot-instructions.md`](./.github/copilot-instructions.md): GitHub Copilot guidance.
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md): human contribution and validation workflow.
 - [`ROADMAP.md`](./ROADMAP.md): current-state assessment and future feature priorities.
+- [`P0_CORRECTNESS_SECURITY_TRUST_PLAN.md`](./P0_CORRECTNESS_SECURITY_TRUST_PLAN.md): executable Phase 0 plan for correctness, security, observability, error handling, and quality gates.
