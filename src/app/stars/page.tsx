@@ -34,7 +34,18 @@ export default async function StarsPage() {
     .eq('user_id', session.user.id)
     .order('created_at', { ascending: false });
 
-  const apps = bookmarks?.map(b => b.resources) || [];
+  type StarredApp = {
+    id: string;
+    token: string;
+    display_name: string | null;
+    description: string | null;
+    kind: string;
+    latest_version: string | null;
+    owner: string | null;
+    repo: string | null;
+  };
+
+  const apps = (bookmarks?.map(b => b.resources) || []) as unknown as StarredApp[];
 
   return (
     <>
@@ -64,7 +75,7 @@ export default async function StarsPage() {
         </div>
 
         <div className="app-grid">
-          {apps.map((app: any) => (
+          {apps.map((app: StarredApp) => (
             <div key={app.id} style={{ position: 'relative' }}>
               <div className="app-card">
                 <Link href={`/app/${app.token}`} style={{ position: 'absolute', inset: 0, zIndex: 1 }} />
@@ -100,7 +111,7 @@ export default async function StarsPage() {
           ))}
           {apps.length === 0 && (
             <div style={{ color: 'var(--text-muted)', gridColumn: '1 / -1', textAlign: 'center', padding: '3rem 0' }}>
-              You haven't starred any apps yet.
+              You haven&apos;t starred any apps yet.
             </div>
           )}
         </div>

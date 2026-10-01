@@ -58,7 +58,21 @@ export default async function Home(props: PageProps) {
     }
   }
   
-  let apps: any[] = [];
+  type AppData = {
+    count: number;
+    resources: {
+      id: string;
+      token: string;
+      display_name: string | null;
+      description: string | null;
+      latest_version: string | null;
+      kind: string;
+      updated_at: string | null;
+      analytics_snapshots?: { count: number }[] | null;
+    };
+  };
+
+  let apps: AppData[] = [];
   
   if (query) {
     // Search mode
@@ -120,8 +134,8 @@ export default async function Home(props: PageProps) {
       const { data } = await dbQuery.limit(limit);
         
       apps = data?.map(rc => ({
-        count: (rc.resources as any)?.analytics_snapshots?.[0]?.count || 0,
-        resources: rc.resources
+        count: (rc.resources as unknown as AppData['resources'])?.analytics_snapshots?.[0]?.count || 0,
+        resources: rc.resources as unknown as AppData['resources']
       })) || [];
     }
   } else {
@@ -281,7 +295,7 @@ export default async function Home(props: PageProps) {
         )}
 
         <div className="app-grid">
-          {gridApps.map((app: any, idx: number) => (
+          {gridApps.map((app: AppData, idx: number) => (
             <div key={idx} style={{ position: 'relative' }}>
               <div className="app-card">
                 <Link href={`/app/${app.resources?.token}`} style={{ position: 'absolute', inset: 0, zIndex: 1 }} />

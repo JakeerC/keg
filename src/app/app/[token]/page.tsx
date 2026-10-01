@@ -43,7 +43,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
       .select('resource_id')
       .eq('user_id', session.user.id);
     if (bookmarks) {
-      userBookmarks = new Set(bookmarks.map((b: any) => b.resource_id));
+      userBookmarks = new Set(bookmarks.map((b: { resource_id: string }) => b.resource_id));
     }
   }
 
@@ -73,7 +73,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
     return (
       <div className="content-scroll" style={{ padding: '4rem', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>App Not Found</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>We couldn't find an app with the token '{token}'.</p>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>We couldn&apos;t find an app with the token &apos;{token}&apos;.</p>
         <Link href="/">
           <button className="install-btn" style={{ margin: '0 auto' }}>
             <ArrowLeft size={16} /> Back to Browse
@@ -108,11 +108,11 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
     return num.toString();
   };
 
-  const categoryName = (resource.resource_categories as any)?.[0]?.categories?.display_name || 'Uncategorized';
+  const categoryName = (resource.resource_categories as unknown as Array<{ categories: { display_name: string } }>)?.[0]?.categories?.display_name || 'Uncategorized';
   const isCask = resource.kind === 'gui_app';
 
   // 3. Fetch live Homebrew extra details
-  let extraDetails: any = null;
+  let extraDetails: Record<string, unknown> | null = null;
   try {
     const res = await fetch(`https://formulae.brew.sh/api/${isCask ? 'cask' : 'formula'}/${token}.json`, { next: { revalidate: 3600 } });
     if (res.ok) {
@@ -123,8 +123,8 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
   }
 
   // 4. Fetch related apps
-  const primaryCategoryId = (resource.resource_categories as any)?.[0]?.categories?.id;
-  let relatedApps: any[] = [];
+  const primaryCategoryId = (resource.resource_categories as unknown as Array<{ categories: { id: string } }>)?.[0]?.categories?.id;
+  let relatedApps: Record<string, unknown>[] = [];
   if (primaryCategoryId) {
     const { data } = await supabase
       .from('resource_categories')
@@ -289,7 +289,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
                 scrollbarWidth: 'none',
                 WebkitOverflowScrolling: 'touch'
               }} className="hide-scrollbar">
-                {relatedApps.map((related: any) => {
+                {relatedApps.map((related: Record<string, unknown>) => {
                   const app = related.resources;
                   return (
                       <div key={app.id} className="app-card" style={{ position: 'relative', flexShrink: 0, width: '260px' }}>

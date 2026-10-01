@@ -109,7 +109,7 @@ Output ONLY the exact category slug from the list above. Do not output anything 
       message: `Successfully classified ${successCount} out of ${uncategorized.length} resources.` 
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Classification error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

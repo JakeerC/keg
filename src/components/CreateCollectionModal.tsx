@@ -18,7 +18,7 @@ export default function CreateCollectionModal({ isOpen, onClose }: { isOpen: boo
   const router = useRouter();
 
   useEffect(() => {
-    setMounted(true);
+    queueMicrotask(() => setMounted(true));
   }, []);
 
   if (!isOpen || !mounted) return null;

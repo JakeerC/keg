@@ -44,7 +44,7 @@ export default function AnalyticsChart({ data }: { data: { name: string, install
               color: 'var(--text-primary)',
               backdropFilter: 'blur(10px)'
             }}
-            formatter={(value: any) => [new Intl.NumberFormat().format(value || 0), 'Installs']}
+            formatter={(value: number) => [new Intl.NumberFormat().format(value || 0), 'Installs']}
           />
           <Bar dataKey="installs" fill="var(--accent-orange)" radius={[4, 4, 0, 0]} maxBarSize={60} />
         </BarChart>

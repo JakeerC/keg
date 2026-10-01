@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     const caskRes = await fetch('https://formulae.brew.sh/api/cask.json');
     const casks = await caskRes.json();
 
-    const resourcesToUpsert: any[] = [];
+    const resourcesToUpsert: Record<string, unknown>[] = [];
 
     // Process formulae
     for (const formula of formulae) {
@@ -82,8 +82,8 @@ export async function GET(request: Request) {
     const topCasks = caskAnalyticsData.items.slice(0, 1000); 
 
     const tokensToFetch = [
-      ...topFormulae.map((i: any) => i.formula),
-      ...topCasks.map((i: any) => i.cask)
+      ...topFormulae.map((i: { formula: string }) => i.formula),
+      ...topCasks.map((i: { cask: string }) => i.cask)
     ];
 
     // 4. Map to IDs using specific tokens to avoid the 1000 row fetch limit
@@ -101,11 +101,11 @@ export async function GET(request: Request) {
         .in('token', chunk);
         
       if (existingResources) {
-        existingResources.forEach((r: any) => resourceMap.set(r.token, r.id));
+        existingResources.forEach((r: { token: string, id: string }) => resourceMap.set(r.token, r.id));
       }
     }
 
-    const snapshotsToInsert: any[] = [];
+    const snapshotsToInsert: Record<string, unknown>[] = [];
     const today = new Date().toISOString().split('T')[0];
 
     // Top 1000 formulae analytics

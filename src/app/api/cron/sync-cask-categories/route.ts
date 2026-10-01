@@ -51,8 +51,8 @@ export async function GET() {
         const catInfo = tokenToCategory[resource.token];
         if (!catInfo) continue;
 
-        const primarySlug = (catInfo as any).primary;
-        let normalizedSlug = CASKFLOW_TO_DB_MAP[primarySlug] || primarySlug.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+        const primarySlug = (catInfo as { primary: string }).primary;
+        const normalizedSlug = CASKFLOW_TO_DB_MAP[primarySlug] || primarySlug.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
         
         let categoryId = categoryMap.get(normalizedSlug);
         if (!categoryId) {
@@ -103,7 +103,7 @@ export async function GET() {
       message: `Successfully mapped ${insertedCount} Casks to Categories from CaskFlow.` 
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Sync cask categories error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

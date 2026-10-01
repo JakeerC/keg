@@ -98,7 +98,7 @@ export default async function MyCollectionsPage() {
           
           {(!collections || collections.length === 0) && (
             <div style={{ color: 'var(--text-muted)', gridColumn: '1 / -1', textAlign: 'center', padding: '3rem 0' }}>
-              You haven't created any collections yet.
+              You haven&apos;t created any collections yet.
               <br/>
               <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>Click the folder icon on any app to create one.</span>
             </div>

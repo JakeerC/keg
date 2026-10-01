@@ -111,7 +111,7 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
         </div>
 
         <div className="app-grid">
-          {apps.map((app: any) => (
+          {apps.map((app: Record<string, unknown>) => (
             <div key={app.id} style={{ position: 'relative' }}>
               <div className="app-card">
                 <Link href={`/app/${app.token}`} style={{ position: 'absolute', inset: 0, zIndex: 1 }} />
