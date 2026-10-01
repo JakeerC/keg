@@ -7,7 +7,7 @@ import StarButton from '@/components/StarButton';
 import SaveToCollectionButton from '@/components/SaveToCollectionButton';
 import TerminalCommand from '@/components/TerminalCommand';
 import AnalyticsChart from '@/components/AnalyticsChart';
-import { TerminalSquare, Download, Globe, ArrowLeft, Command } from 'lucide-react';
+import { TerminalSquare, Globe, ArrowLeft, Command } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
@@ -123,7 +123,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
     if (res.ok) {
       extraDetails = await res.json();
     }
-  } catch (e) {
+  } catch {
     // gracefully fail if homebrew API is down
   }
 

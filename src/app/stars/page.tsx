@@ -1,5 +1,5 @@
 import { createSupabaseServer } from '@/lib/supabase-server';
-import { supabase } from '@/lib/supabase';
+
 import { ThemeToggle } from '@/components/ThemeToggle';
 import AuthButton from '@/components/AuthButton';
 import AppIcon from '@/components/AppIcon';

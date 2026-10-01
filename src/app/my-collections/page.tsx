@@ -2,7 +2,7 @@ import { createSupabaseServer } from '@/lib/supabase-server';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import AuthButton from '@/components/AuthButton';
 import Link from 'next/link';
-import { Lock, Globe, Plus, ArrowLeft } from 'lucide-react';
+import { Lock, Globe, ArrowLeft } from 'lucide-react';
 
 export const revalidate = 0;
 

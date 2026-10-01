@@ -4,7 +4,7 @@ import { createSupabaseBrowser } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LogOut, Star, User } from 'lucide-react';
+import { LogOut, Star } from 'lucide-react';
 
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 

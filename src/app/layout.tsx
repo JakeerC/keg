@@ -1,21 +1,6 @@
 import type { Metadata } from 'next'
 import { Manrope } from 'next/font/google'
-import {
-  LayoutGrid,
-  Star,
-  TrendingUp,
-  Clock,
-  Sparkles,
-  Music,
-  Globe,
-  Cloud,
-  MessageSquare,
-  PenTool,
-  Terminal,
-  Bitcoin,
-  Gamepad2,
-  MenuSquare
-} from 'lucide-react'
+
 import Sidebar from '@/components/Sidebar'
 import { Suspense } from 'react'
 import { ThemeProvider } from '@/components/ThemeProvider'

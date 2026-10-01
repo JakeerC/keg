@@ -7,7 +7,7 @@ import KindToggle from '@/components/KindToggle';
 import AuthButton from '@/components/AuthButton';
 import StarButton from '@/components/StarButton';
 import SaveToCollectionButton from '@/components/SaveToCollectionButton';
-import { Download, TerminalSquare } from 'lucide-react';
+import { TerminalSquare } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { createSupabaseServer } from '@/lib/supabase-server';

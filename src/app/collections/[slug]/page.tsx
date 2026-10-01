@@ -5,7 +5,7 @@ import AppIcon from '@/components/AppIcon';
 import StarButton from '@/components/StarButton';
 import SaveToCollectionButton from '@/components/SaveToCollectionButton';
 import CollectionActions from '@/components/CollectionActions';
-import { TerminalSquare, ArrowLeft, Lock, Globe } from 'lucide-react';
+import { TerminalSquare, ArrowLeft, Lock } from 'lucide-react';
 import Link from 'next/link';
 
 export const revalidate = 0;
