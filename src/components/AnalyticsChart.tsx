@@ -2,7 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-export default function AnalyticsChart({ data }: { data: { name: string, installs: number }[] }) {
+export default function AnalyticsChart({ data }: { data: { name: string, installs: number | undefined }[] }) {
   if (!data || data.length === 0) {
     return <div style={{ color: 'var(--text-muted)' }}>No analytics data available.</div>;
   }
@@ -44,7 +44,11 @@ export default function AnalyticsChart({ data }: { data: { name: string, install
               color: 'var(--text-primary)',
               backdropFilter: 'blur(10px)'
             }}
-            formatter={(value: number | string | Array<number | string>) => [new Intl.NumberFormat().format(Number(value) || 0), 'Installs']}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            formatter={(value: any) => [
+              value === undefined || value === null ? 'Unavailable' : new Intl.NumberFormat().format(Number(value) || 0), 
+              'Installs'
+            ]}
           />
           <Bar dataKey="installs" fill="var(--accent-orange)" radius={[4, 4, 0, 0]} maxBarSize={60} />
         </BarChart>

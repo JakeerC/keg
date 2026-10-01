@@ -83,25 +83,26 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
     );
   }
 
+  const isCask = resource.kind === 'gui_app';
+
   // 2. Fetch all analytics
   const { data: analyticsData } = await supabase
-    .from('analytics_snapshots')
+    .from('latest_analytics_snapshots')
     .select('time_window, count')
     .eq('resource_id', resource.id)
-    .in('metric', ['install-on-request', 'cask-install'])
-    .order('captured_at', { ascending: false })
-    .limit(3);
+    .eq('metric', isCask ? 'cask-install' : 'install-on-request');
 
   // Parse analytics for recharts
   const chartData = [
-    { name: '30 Days', installs: analyticsData?.find(a => a.time_window === '30d')?.count || 0 },
-    { name: '90 Days', installs: analyticsData?.find(a => a.time_window === '90d')?.count || 0 },
-    { name: '365 Days', installs: analyticsData?.find(a => a.time_window === '365d')?.count || 0 }
+    { name: '30 Days', installs: analyticsData?.find(a => a.time_window === '30d')?.count },
+    { name: '90 Days', installs: analyticsData?.find(a => a.time_window === '90d')?.count },
+    { name: '365 Days', installs: analyticsData?.find(a => a.time_window === '365d')?.count }
   ];
   
   const count30d = chartData[0].installs;
 
-  const formatCount = (num: number) => {
+  const formatCount = (num: number | undefined) => {
+    if (num === undefined) return 'N/A';
     if (!num) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
@@ -109,7 +110,6 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
   };
 
   const categoryName = (resource.resource_categories as unknown as Array<{ categories: { display_name: string } }>)?.[0]?.categories?.display_name || 'Uncategorized';
-  const isCask = resource.kind === 'gui_app';
 
   // 3. Fetch live Homebrew extra details
   let extraDetails: {
@@ -135,7 +135,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
       token: string;
       display_name: string | null;
       kind: string;
-      analytics_snapshots: { count: number }[];
+      latest_analytics_snapshots: { count: number }[];
     }
   }> = [];
   if (primaryCategoryId) {
@@ -144,7 +144,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
       .select(`
         resources!inner (
           id, token, display_name, kind,
-          analytics_snapshots(count)
+          latest_analytics_snapshots(count)
         )
       `)
       .eq('category_id', primaryCategoryId)

@@ -75,7 +75,8 @@ export default async function Home(props: PageProps) {
   const heroApp = apps?.[0];
   const gridApps = apps?.slice(1) || [];
 
-  const formatCount = (num: number) => {
+  const formatCount = (num: number | undefined) => {
+    if (num === undefined) return 'N/A';
     if (!num) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';

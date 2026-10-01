@@ -12,7 +12,7 @@ export type BrowseParams = {
 };
 
 export type AppData = {
-  count: number;
+  count: number | undefined;
   resources: {
     id: string;
     token: string;
@@ -70,13 +70,12 @@ export async function getBrowseResults(
     validResourceIds = featuredResourceIds;
   }
 
-  // We either query `analytics_snapshots` (if we need to sort by count) or `resources` directly.
-  // Actually, 'top' or default 'installed' sort requires sorting by count.
+  // We either query `latest_analytics_snapshots` (if we need to sort by count) or `resources` directly.
   const isTopRanking = filter === 'top' || (filter !== 'recent' && sort !== 'recent');
 
   if (isTopRanking) {
     let dbQuery = supabase
-      .from('analytics_snapshots')
+      .from('latest_analytics_snapshots')
       .select(`
         count,
         resources!inner (
@@ -89,10 +88,13 @@ export async function getBrowseResults(
           updated_at
         )
       `)
-      .eq('time_window', '30d')
-      .in('metric', ['install-on-request', 'cask-install']);
+      .eq('time_window', '30d');
 
-    if (kind && kind !== 'both') dbQuery = dbQuery.eq('resources.kind', kind);
+    // Do not combine incompatible metrics in a single ranking
+    const activeKind = kind && kind !== 'both' ? kind : 'gui_app'; 
+    dbQuery = dbQuery.eq('resources.kind', activeKind);
+    dbQuery = dbQuery.eq('metric', activeKind === 'gui_app' ? 'cask-install' : 'install-on-request');
+
     if (query) dbQuery = dbQuery.or(`display_name.ilike.%${query}%,token.ilike.%${query}%`, { foreignTable: 'resources' });
     if (validResourceIds) dbQuery = dbQuery.in('resource_id', validResourceIds);
     
@@ -112,7 +114,7 @@ export async function getBrowseResults(
         latest_version,
         kind,
         updated_at,
-        analytics_snapshots(count)
+        latest_analytics_snapshots(count)
       `);
 
     if (kind && kind !== 'both') dbQuery = dbQuery.eq('kind', kind);
@@ -120,16 +122,20 @@ export async function getBrowseResults(
     if (validResourceIds) dbQuery = dbQuery.in('id', validResourceIds);
 
     // Filter analytics to 30d
-    dbQuery = dbQuery.eq('analytics_snapshots.time_window', '30d').in('analytics_snapshots.metric', ['install-on-request', 'cask-install']);
+    dbQuery = dbQuery.eq('latest_analytics_snapshots.time_window', '30d');
+    
+    // For related/recent, we still need to filter by correct metric if possible
+    // Supabase nested queries don't easily allow dynamic metric filtering based on parent row in select string without a view change, 
+    // but the latest_analytics_snapshots view already has at most one metric per resource from sync.
 
     dbQuery = dbQuery.order('updated_at', { ascending: false });
 
     const { data } = await dbQuery.limit(limit);
 
     return (data || []).map((r: Record<string, unknown>) => {
-      const snapshots = r.analytics_snapshots as { count: number }[] | undefined;
+      const snapshots = r.latest_analytics_snapshots as { count: number }[] | undefined;
       return {
-        count: snapshots?.[0]?.count || 0,
+        count: snapshots && snapshots.length > 0 ? snapshots[0].count : undefined,
         resources: r
       };
     }) as unknown as AppData[];
