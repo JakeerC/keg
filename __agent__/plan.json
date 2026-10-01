@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "items": [
+    {
+      "title": "Survey repository structure and current product capabilities",
+      "status": "done"
+    },
+    {
+      "title": "Review architecture, documentation, and project checks",
+      "status": "done"
+    },
+    {
+      "title": "Prioritize future features and write roadmap document",
+      "status": "in-progress"
+    },
+    {
+      "title": "Validate roadmap against repository state",
+      "status": "pending"
+    }
+  ],
+  "updated_at": "2026-10-01T17:26:56.501Z",
+  "session_id": "01a0f877-fa25-71cc-bbf6-ef4c449edd1d"
+}
