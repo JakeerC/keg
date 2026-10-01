@@ -3,7 +3,12 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export const revalidate = 0;
 
-export async function GET() {
+import { verifyCronAuth } from '@/lib/cron-auth';
+
+export async function GET(request: Request) {
+  const authResponse = verifyCronAuth(request);
+  if (authResponse) return authResponse;
+
   try {
     console.log('Fetching CaskFlow categories.json...');
     const res = await fetch('https://github.com/alielsokary/CaskFlow/releases/latest/download/categories.json');

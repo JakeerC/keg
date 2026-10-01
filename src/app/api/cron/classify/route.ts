@@ -23,7 +23,12 @@ const CATEGORIES = [
   { slug: 'uncategorized', display_name: 'Other / Uncategorized' }
 ];
 
-export async function GET() {
+import { verifyCronAuth } from '@/lib/cron-auth';
+
+export async function GET(request: Request) {
+  const authResponse = verifyCronAuth(request);
+  if (authResponse) return authResponse;
+
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: 'GEMINI_API_KEY is not configured.' }, { status: 500 });
   }

@@ -76,15 +76,23 @@ export default function SaveToCollectionButton({ resourceId }: { resourceId: str
     setItemCounts(prev => ({ ...prev, [collectionId]: !isAdded }));
 
     if (isAdded) {
-      await supabase
+      const { error } = await supabase
         .from('collection_items')
         .delete()
         .eq('collection_id', collectionId)
         .eq('resource_id', resourceId);
+      if (error) {
+        alert(`Failed to remove item: ${error.message}`);
+        setItemCounts(prev => ({ ...prev, [collectionId]: true }));
+      }
     } else {
-      await supabase
+      const { error } = await supabase
         .from('collection_items')
         .insert({ collection_id: collectionId, resource_id: resourceId });
+      if (error) {
+        alert(`Failed to save item: ${error.message}`);
+        setItemCounts(prev => ({ ...prev, [collectionId]: false }));
+      }
     }
   };
 

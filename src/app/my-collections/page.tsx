@@ -1,4 +1,3 @@
-import { supabase } from '@/lib/supabase';
 import { createSupabaseServer } from '@/lib/supabase-server';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import AuthButton from '@/components/AuthButton';

@@ -1,4 +1,3 @@
-import { supabase } from '@/lib/supabase';
 import { createSupabaseServer } from '@/lib/supabase-server';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import AuthButton from '@/components/AuthButton';
@@ -15,7 +14,10 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
   const params = await props.params;
   const slug = params.slug;
 
-  const { data: collection } = await supabase
+  const supabaseServer = await createSupabaseServer();
+  const { data: { session } } = await supabaseServer.auth.getSession();
+
+  const { data: collection } = await supabaseServer
     .from('collections')
     .select('*')
     .eq('slug', slug)
@@ -34,7 +36,7 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
     );
   }
 
-  const { data: items } = await supabase
+  const { data: items } = await supabaseServer
     .from('collection_items')
     .select(`
       resources (
@@ -58,9 +60,6 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
     kind: string;
   }>;
 
-  const supabaseServer = await createSupabaseServer();
-  const { data: { session } } = await supabaseServer.auth.getSession();
-  
   let userBookmarks = new Set<string>();
   if (session) {
     const { data: bookmarks } = await supabaseServer
