@@ -60,6 +60,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
       latest_version,
       kind,
       resource_categories (
+        is_primary,
         categories (
           id,
           display_name
@@ -109,7 +110,13 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
     return num.toString();
   };
 
-  const categoryName = (resource.resource_categories as unknown as Array<{ categories: { display_name: string } }>)?.[0]?.categories?.display_name || 'Uncategorized';
+  type ResourceCategory = {
+    is_primary: boolean | null;
+    categories: { id: string; display_name: string } | null;
+  };
+  const resourceCategories = (resource.resource_categories as unknown as ResourceCategory[] | null) || [];
+  const primaryCategory = resourceCategories.find(category => category.is_primary) || resourceCategories[0];
+  const categoryName = primaryCategory?.categories?.display_name || 'Uncategorized';
 
   // 3. Fetch live Homebrew extra details
   let extraDetails: {
@@ -128,7 +135,7 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
   }
 
   // 4. Fetch related apps
-  const primaryCategoryId = (resource.resource_categories as unknown as Array<{ categories: { id: string } }>)?.[0]?.categories?.id;
+  const primaryCategoryId = primaryCategory?.categories?.id;
   let relatedApps: Array<{
     resources: {
       id: string;

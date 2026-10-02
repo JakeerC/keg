@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { GoogleGenAI } from '@google/genai';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { runIngestionJob } from '@/lib/ingestion-runner';
+import { parseClassifierCategory } from '@/lib/category-mapping';
 
 export const revalidate = 0;
 export const maxDuration = 300; // Vercel maximum duration
@@ -97,8 +98,9 @@ Output ONLY the exact category slug from the list above. Do not output anything 
         });
 
         const rawOutput = response.text?.trim().toLowerCase() || 'uncategorized';
-        // Ensure the model output is one of our valid slugs
-        const chosenSlug = CATEGORIES.find(c => rawOutput.includes(c.slug))?.slug || 'uncategorized';
+        // Accept only an exact allowed slug; substring matching can select a
+        // category from explanatory or otherwise ambiguous model output.
+        const chosenSlug = parseClassifierCategory(rawOutput, CATEGORIES.map(category => category.slug));
         const categoryId = categoryMap.get(chosenSlug);
 
         if (categoryId) {

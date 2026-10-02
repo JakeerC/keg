@@ -10,6 +10,7 @@ import SaveToCollectionButton from '@/components/SaveToCollectionButton';
 import { TerminalSquare } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { unstable_cache } from 'next/cache';
 import { createSupabaseServer } from '@/lib/supabase-server';
 import { getBrowseResults, type AppData } from '@/lib/browse-queries';
 export const revalidate = 0; // Dynamic page
@@ -38,13 +39,22 @@ export default async function Home(props: PageProps) {
   const supabaseServer = await createSupabaseServer();
   const { data: { session } } = await supabaseServer.auth.getSession();
   
-  // Fetch featured collections
-  const { data: featuredCollections } = await supabase
-    .from('collections')
-    .select('*')
-    .eq('is_featured', true)
-    .order('sort_order', { ascending: true })
-    .limit(4);
+  // Fetch featured collections, cached for 1 hour
+  const getFeaturedCollections = unstable_cache(
+    async () => {
+      const { data } = await supabase
+        .from('collections')
+        .select('*')
+        .eq('is_featured', true)
+        .order('sort_order', { ascending: true })
+        .limit(4);
+      return data;
+    },
+    ['featured-collections'],
+    { revalidate: 3600 }
+  );
+  
+  const featuredCollections = await getFeaturedCollections();
   
   let userBookmarks = new Set<string>();
   if (session) {
@@ -63,7 +73,15 @@ export default async function Home(props: PageProps) {
     filterValue = 'none';
   }
 
-  const apps = await getBrowseResults(supabase, {
+  const getCachedBrowseResults = unstable_cache(
+    async (p: import('@/lib/browse-queries').BrowseParams) => {
+      return getBrowseResults(supabase, p);
+    },
+    ['browse-results', JSON.stringify({ query, category, filterValue, sort, kind, limit })],
+    { revalidate: 60 }
+  );
+
+  const apps = await getCachedBrowseResults({
     query,
     category,
     filter: filterValue,
@@ -233,10 +251,18 @@ export default async function Home(props: PageProps) {
           ))}
           {apps.length === 0 && (
             <div style={{ color: 'var(--text-muted)', gridColumn: '1 / -1', textAlign: 'center', padding: '3rem 0' }}>
-              {query ? 'No apps found matching your search.' : 
-               category ? 'No apps found in this category.' : 
-               filterValue === 'featured' ? 'No featured apps found.' :
-               'No apps found.'}
+              <div style={{ marginBottom: '1rem' }}>
+                {query ? 'No apps found matching your search.' : 
+                 category ? 'No apps found in this category.' : 
+                 filterValue === 'featured' ? 'No featured apps found.' :
+                 'No apps found.'}
+              </div>
+              {(!kind || kind === 'both') && sort !== 'recent' && (
+                <div style={{ fontSize: '0.95rem', backgroundColor: 'var(--bg-card)', padding: '1rem', borderRadius: '8px', display: 'inline-block', border: '1px solid var(--border-color)' }}>
+                  Top charts only show Mac Apps by default due to incompatible metrics.<br/>
+                  Try switching to <Link href={`/?${new URLSearchParams({ ...Object.fromEntries(Object.entries(searchParams).filter(([_, v]) => v !== undefined)), kind: 'cli_tool' }).toString()}`} style={{ color: 'var(--text-primary)', textDecoration: 'underline', fontWeight: 600 }}>CLI Tools</Link> or sorting by <Link href={`/?${new URLSearchParams({ ...Object.fromEntries(Object.entries(searchParams).filter(([_, v]) => v !== undefined)), sort: 'recent' }).toString()}`} style={{ color: 'var(--text-primary)', textDecoration: 'underline', fontWeight: 600 }}>Recently Added</Link> to see more results.
+                </div>
+              )}
             </div>
           )}
         </div>
