@@ -34,7 +34,7 @@ jobs:
             echo "::error::CRON_SECRET secret is not set. Add your CRON_SECRET in repository Secrets."
             exit 1
           fi
-          
+
           # Clean secret in case it was entered with "Bearer " prefix or quotes
           CLEAN_TOKEN=$(echo "$CRON_SECRET" | sed -E 's/^[Bb]earer[[:space:]]+//' | tr -d '"'\''\r\n' | xargs)
           echo "APP_URL configured: ${APP_URL%/}"
@@ -48,16 +48,16 @@ jobs:
           ENDPOINT="$BASE_URL/api/cron/sync"
           CLEAN_TOKEN=$(echo "$CRON_SECRET" | sed -E 's/^[Bb]earer[[:space:]]+//' | tr -d '"'\''\r\n' | xargs)
           echo "Triggering $ENDPOINT..."
-          
+
           RESPONSE=$(curl -sSL -w "\n%{http_code}" -X GET "$ENDPOINT" \
             -H "Authorization: Bearer $CLEAN_TOKEN")
-          
+
           HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
           HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
-          
+
           echo "HTTP Status: $HTTP_STATUS"
           echo "Response: $HTTP_BODY"
-          
+
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
             echo "✅ Sync completed successfully"
           else
@@ -77,16 +77,16 @@ jobs:
           ENDPOINT="$BASE_URL/api/cron/sync-cask-categories"
           CLEAN_TOKEN=$(echo "$CRON_SECRET" | sed -E 's/^[Bb]earer[[:space:]]+//' | tr -d '"'\''\r\n' | xargs)
           echo "Triggering $ENDPOINT..."
-          
+
           RESPONSE=$(curl -sSL -w "\n%{http_code}" -X GET "$ENDPOINT" \
             -H "Authorization: Bearer $CLEAN_TOKEN")
-          
+
           HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
           HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
-          
+
           echo "HTTP Status: $HTTP_STATUS"
           echo "Response: $HTTP_BODY"
-          
+
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
             echo "✅ Cask categories sync completed successfully"
           else
@@ -106,16 +106,16 @@ jobs:
           ENDPOINT="$BASE_URL/api/cron/classify"
           CLEAN_TOKEN=$(echo "$CRON_SECRET" | sed -E 's/^[Bb]earer[[:space:]]+//' | tr -d '"'\''\r\n' | xargs)
           echo "Triggering $ENDPOINT..."
-          
+
           RESPONSE=$(curl -sSL -w "\n%{http_code}" -X GET "$ENDPOINT" \
             -H "Authorization: Bearer $CLEAN_TOKEN")
-          
+
           HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
           HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
-          
+
           echo "HTTP Status: $HTTP_STATUS"
           echo "Response: $HTTP_BODY"
-          
+
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
             echo "✅ Classification completed successfully"
           else
