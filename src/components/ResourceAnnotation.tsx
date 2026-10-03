@@ -1,11 +1,16 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
-import { Tag, Edit3, Bookmark, Archive, CheckCircle2 } from 'lucide-react';
+import { Edit3, Bookmark, Archive, CheckCircle2 } from 'lucide-react';
+
+export type AnnotationData = {
+  note?: string | null;
+  install_state?: 'planned' | 'installed' | 'archived' | string | null;
+} | null;
 
 export default function ResourceAnnotation({ resourceId, initialAnnotation }: { 
   resourceId: string, 
-  initialAnnotation: any 
+  initialAnnotation: AnnotationData 
 }) {
   const [note, setNote] = useState(initialAnnotation?.note || '');
   const [installState, setInstallState] = useState(initialAnnotation?.install_state || 'planned');
@@ -13,7 +18,7 @@ export default function ResourceAnnotation({ resourceId, initialAnnotation }: {
   const supabase = createSupabaseBrowser();
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const saveAnnotation = async (updates: any) => {
+  const saveAnnotation = async (updates: { note?: string; install_state?: string }) => {
     setIsSaving(true);
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;

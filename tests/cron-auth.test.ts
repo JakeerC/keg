@@ -56,4 +56,14 @@ describe('verifyCronAuth', () => {
     const res = verifyCronAuth(req);
     expect(res).toBeNull(); // null means authorized
   });
+
+  it('succeeds when CRON_SECRET or header has quotes or Bearer prefix in env', () => {
+    process.env.CRON_SECRET = '"Bearer my-secret"';
+    const req = new Request('http://localhost', { 
+      headers: new Headers({ authorization: 'Bearer Bearer "my-secret"' }) 
+    });
+    
+    const res = verifyCronAuth(req);
+    expect(res).toBeNull();
+  });
 });

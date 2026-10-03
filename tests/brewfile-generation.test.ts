@@ -33,7 +33,7 @@ describe('Brewfile Generation', () => {
     mockSelect.mockReturnValue({ eq: mockEq });
   });
 
-  const mockRequest = { url: 'http://localhost/api/brewfile' } as any;
+  const mockRequest = { url: 'http://localhost/api/brewfile' } as unknown as import('next/server').NextRequest;
 
   it('returns 401 if not authenticated', async () => {
     mockGetSession.mockResolvedValue({ data: { session: null } });

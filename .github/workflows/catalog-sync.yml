@@ -20,28 +20,37 @@ on:
 jobs:
   run-sync:
     runs-on: ubuntu-latest
+    env:
+      APP_URL: ${{ secrets.APP_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
       - name: Validate Secrets
         run: |
-          if [ -z "${{ secrets.APP_URL }}" ]; then
+          if [ -z "$APP_URL" ]; then
             echo "::error::APP_URL secret is not set. Add your production deployment URL in repository Secrets."
             exit 1
           fi
-          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+          if [ -z "$CRON_SECRET" ]; then
             echo "::error::CRON_SECRET secret is not set. Add your CRON_SECRET in repository Secrets."
             exit 1
           fi
+          
+          # Clean secret in case it was entered with "Bearer " prefix or quotes
+          CLEAN_TOKEN=$(echo "$CRON_SECRET" | sed -E 's/^[Bb]earer[[:space:]]+//' | tr -d '"'\''\r\n' | xargs)
+          echo "APP_URL configured: ${APP_URL%/}"
+          echo "CRON_SECRET token length: ${#CLEAN_TOKEN} characters"
 
       - name: Sync Formulae, Casks & Analytics
         if: ${{ github.event_name == 'schedule' || inputs.job == 'all' || inputs.job == 'sync' }}
         run: |
-          RAW_URL="${{ secrets.APP_URL }}"
+          RAW_URL="$APP_URL"
           BASE_URL="${RAW_URL%/}"
           ENDPOINT="$BASE_URL/api/cron/sync"
+          CLEAN_TOKEN=$(echo "$CRON_SECRET" | sed -E 's/^[Bb]earer[[:space:]]+//' | tr -d '"'\''\r\n' | xargs)
           echo "Triggering $ENDPOINT..."
           
           RESPONSE=$(curl -sSL -w "\n%{http_code}" -X GET "$ENDPOINT" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+            -H "Authorization: Bearer $CLEAN_TOKEN")
           
           HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
           HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
@@ -53,19 +62,24 @@ jobs:
             echo "✅ Sync completed successfully"
           else
             echo "::error::Sync failed with HTTP $HTTP_STATUS. Response: $HTTP_BODY"
+            if [ "$HTTP_STATUS" -eq 401 ]; then
+              echo "::error::401 Unauthorized: The deployed server rejected this CRON_SECRET."
+              echo "::notice::Check that CRON_SECRET in Vercel matches your GitHub Secret (length: ${#CLEAN_TOKEN}). Also trigger a Redeploy in Vercel if you recently updated environment variables."
+            fi
             exit 1
           fi
 
       - name: Sync CaskFlow Categories
         if: ${{ github.event_name == 'schedule' || inputs.job == 'all' || inputs.job == 'sync-cask-categories' }}
         run: |
-          RAW_URL="${{ secrets.APP_URL }}"
+          RAW_URL="$APP_URL"
           BASE_URL="${RAW_URL%/}"
           ENDPOINT="$BASE_URL/api/cron/sync-cask-categories"
+          CLEAN_TOKEN=$(echo "$CRON_SECRET" | sed -E 's/^[Bb]earer[[:space:]]+//' | tr -d '"'\''\r\n' | xargs)
           echo "Triggering $ENDPOINT..."
           
           RESPONSE=$(curl -sSL -w "\n%{http_code}" -X GET "$ENDPOINT" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+            -H "Authorization: Bearer $CLEAN_TOKEN")
           
           HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
           HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
@@ -77,19 +91,24 @@ jobs:
             echo "✅ Cask categories sync completed successfully"
           else
             echo "::error::Cask categories sync failed with HTTP $HTTP_STATUS. Response: $HTTP_BODY"
+            if [ "$HTTP_STATUS" -eq 401 ]; then
+              echo "::error::401 Unauthorized: The deployed server rejected this CRON_SECRET."
+              echo "::notice::Check that CRON_SECRET in Vercel matches your GitHub Secret (length: ${#CLEAN_TOKEN}). Also trigger a Redeploy in Vercel if you recently updated environment variables."
+            fi
             exit 1
           fi
 
       - name: Classify Formulae with Gemini
         if: ${{ github.event_name == 'schedule' || inputs.job == 'all' || inputs.job == 'classify' }}
         run: |
-          RAW_URL="${{ secrets.APP_URL }}"
+          RAW_URL="$APP_URL"
           BASE_URL="${RAW_URL%/}"
           ENDPOINT="$BASE_URL/api/cron/classify"
+          CLEAN_TOKEN=$(echo "$CRON_SECRET" | sed -E 's/^[Bb]earer[[:space:]]+//' | tr -d '"'\''\r\n' | xargs)
           echo "Triggering $ENDPOINT..."
           
           RESPONSE=$(curl -sSL -w "\n%{http_code}" -X GET "$ENDPOINT" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+            -H "Authorization: Bearer $CLEAN_TOKEN")
           
           HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
           HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
@@ -101,5 +120,9 @@ jobs:
             echo "✅ Classification completed successfully"
           else
             echo "::error::Classification failed with HTTP $HTTP_STATUS. Response: $HTTP_BODY"
+            if [ "$HTTP_STATUS" -eq 401 ]; then
+              echo "::error::401 Unauthorized: The deployed server rejected this CRON_SECRET."
+              echo "::notice::Check that CRON_SECRET in Vercel matches your GitHub Secret (length: ${#CLEAN_TOKEN}). Also trigger a Redeploy in Vercel if you recently updated environment variables."
+            fi
             exit 1
           fi

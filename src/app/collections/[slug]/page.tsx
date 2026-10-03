@@ -8,6 +8,7 @@ import CollectionActions from '@/components/CollectionActions';
 import CollectionItemActions from '@/components/CollectionItemActions';
 import CollectionBrewfileExport from '@/components/CollectionBrewfileExport';
 import CollectionShareActions from '@/components/CollectionShareActions';
+import type { CollectionData } from '@/components/EditCollectionModal';
 import { TerminalSquare, ArrowLeft, Lock } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -125,7 +126,7 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
           overflow: 'hidden'
         }}>
           {isOwner && (
-            <CollectionActions collection={collection as any} />
+            <CollectionActions collection={collection as CollectionData} />
           )}
           {!isOwner && collection.is_private && (
             <div style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(0,0,0,0.3)', padding: '0.4rem 0.8rem', borderRadius: '20px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'white', backdropFilter: 'blur(4px)' }}>

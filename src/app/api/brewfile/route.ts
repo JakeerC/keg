@@ -18,7 +18,16 @@ export async function GET(request: NextRequest) {
   return generateStarsBrewfile(supabaseServer, session);
 }
 
-async function generateCollectionBrewfile(supabaseServer: any, collectionId: string, session: Session | null) {
+type SupabaseServer = Awaited<ReturnType<typeof createSupabaseServer>>;
+
+type ResourceItem = {
+  resources: {
+    token: string;
+    kind: string;
+  } | null;
+};
+
+async function generateCollectionBrewfile(supabaseServer: SupabaseServer, collectionId: string, session: Session | null) {
   const { data: collection } = await supabaseServer
     .from('collections')
     .select('title, is_private, user_id')
@@ -52,11 +61,13 @@ async function generateCollectionBrewfile(supabaseServer: any, collectionId: str
     });
   }
 
-  const apps = items.map((b: any) => b.resources).filter(Boolean);
+  const apps = ((items as unknown as ResourceItem[]) || [])
+    .map(b => b.resources)
+    .filter((r): r is { token: string; kind: string } => Boolean(r));
   return createBrewfileResponse(apps, collection.title);
 }
 
-async function generateStarsBrewfile(supabaseServer: any, session: Session) {
+async function generateStarsBrewfile(supabaseServer: SupabaseServer, session: Session) {
   const { data: bookmarks } = await supabaseServer
     .from('bookmarks')
     .select(`
@@ -76,7 +87,9 @@ async function generateStarsBrewfile(supabaseServer: any, session: Session) {
     });
   }
 
-  const apps = bookmarks.map((b: any) => b.resources).filter(Boolean);
+  const apps = ((bookmarks as unknown as ResourceItem[]) || [])
+    .map(b => b.resources)
+    .filter((r): r is { token: string; kind: string } => Boolean(r));
   return createBrewfileResponse(apps);
 }
 

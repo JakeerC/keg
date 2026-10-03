@@ -103,8 +103,11 @@ export async function GET(request: Request) {
         const cRes = await fetchWithTimeout(`https://formulae.brew.sh/api/analytics/cask-install/${window}.json`, 30000);
         const caskData = await cRes.json();
         
-        allData.formula[window] = formulaData.items.slice(0, 1000);
-        allData.cask[window] = caskData.items.slice(0, 1000);
+        const formulaItems = Array.isArray(formulaData?.items) ? formulaData.items : [];
+        const caskItems = Array.isArray(caskData?.items) ? caskData.items : [];
+        
+        allData.formula[window] = formulaItems.slice(0, 1000);
+        allData.cask[window] = caskItems.slice(0, 1000);
         
         allData.formula[window].forEach((i: { formula: string }) => tokensToFetch.add(i.formula));
         allData.cask[window].forEach((i: { cask: string }) => tokensToFetch.add(i.cask));

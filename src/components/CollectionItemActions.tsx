@@ -4,10 +4,10 @@ import { useRouter } from 'next/navigation';
 import { Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 
 export default function CollectionItemActions({
-  collectionId, resourceId, sortOrder, isFirst, isLast
+  collectionId, resourceId, isFirst, isLast
 }: {
   collectionId: string; resourceId: string;
-  sortOrder: number; isFirst: boolean; isLast: boolean;
+  sortOrder?: number; isFirst: boolean; isLast: boolean;
 }) {
   const supabase = createSupabaseBrowser();
   const router = useRouter();
