@@ -1,0 +1,57 @@
+name: Scheduled Catalog Sync
+
+on:
+  schedule:
+    # Runs daily at 02:00 UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Ingestion job to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - sync
+          - sync-cask-categories
+          - classify
+
+jobs:
+  run-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Secrets
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ]; then
+            echo "::error::APP_URL secret is not set. Add your production deployment URL in repository Secrets."
+            exit 1
+          fi
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "::error::CRON_SECRET secret is not set. Add your CRON_SECRET in repository Secrets."
+            exit 1
+          fi
+
+      - name: Sync Formulae, Casks & Analytics
+        if: ${{ github.event_name == 'schedule' || inputs.job == 'all' || inputs.job == 'sync' }}
+        run: |
+          echo "Triggering /api/cron/sync..."
+          curl -f -sSL -X GET "${{ secrets.APP_URL }}/api/cron/sync" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+          echo ""
+
+      - name: Sync CaskFlow Categories
+        if: ${{ github.event_name == 'schedule' || inputs.job == 'all' || inputs.job == 'sync-cask-categories' }}
+        run: |
+          echo "Triggering /api/cron/sync-cask-categories..."
+          curl -f -sSL -X GET "${{ secrets.APP_URL }}/api/cron/sync-cask-categories" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+          echo ""
+
+      - name: Classify Formulae with Gemini
+        if: ${{ github.event_name == 'schedule' || inputs.job == 'all' || inputs.job == 'classify' }}
+        run: |
+          echo "Triggering /api/cron/classify..."
+          curl -f -sSL -X GET "${{ secrets.APP_URL }}/api/cron/classify" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+          echo ""

@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/sync",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/sync-cask-categories",
+      "schedule": "30 2 * * *"
+    },
+    {
+      "path": "/api/cron/classify",
+      "schedule": "0 3 * * *"
     }
   ]
 }
