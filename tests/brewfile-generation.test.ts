@@ -33,10 +33,12 @@ describe('Brewfile Generation', () => {
     mockSelect.mockReturnValue({ eq: mockEq });
   });
 
+  const mockRequest = { url: 'http://localhost/api/brewfile' } as any;
+
   it('returns 401 if not authenticated', async () => {
     mockGetSession.mockResolvedValue({ data: { session: null } });
     
-    const response = await GET() as unknown as { body: string, init: { status: number } };
+    const response = await GET(mockRequest) as unknown as { body: string, init: { status: number } };
     expect(response.body).toBe('Unauthorized');
     expect(response.init.status).toBe(401);
   });
@@ -45,7 +47,7 @@ describe('Brewfile Generation', () => {
     mockGetSession.mockResolvedValue({ data: { session: { user: { id: '123' } } } });
     mockEq.mockResolvedValue({ data: [] });
     
-    const response = await GET() as unknown as { body: string };
+    const response = await GET(mockRequest) as unknown as { body: string };
     expect(response.body).toContain('# No apps starred yet');
   });
 
@@ -58,7 +60,7 @@ describe('Brewfile Generation', () => {
       ]
     });
     
-    const response = await GET() as unknown as { body: string };
+    const response = await GET(mockRequest) as unknown as { body: string };
     expect(response.body).toContain('brew "wget"');
     expect(response.body).toContain('cask "google-chrome"');
     expect(response.body).toContain('tap "homebrew/cask"');

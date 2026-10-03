@@ -3,6 +3,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import AuthButton from '@/components/AuthButton';
 import Link from 'next/link';
 import { Lock, Globe, ArrowLeft } from 'lucide-react';
+import CreateCollectionButton from '@/components/CreateCollectionButton';
 
 export const revalidate = 0;
 
@@ -44,6 +45,7 @@ export default async function MyCollectionsPage() {
       <main className="content-scroll">
         <div className="section-header" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2>My Collections</h2>
+          <CreateCollectionButton />
         </div>
 
         <div className="collections-grid" style={{

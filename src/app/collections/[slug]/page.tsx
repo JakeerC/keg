@@ -5,10 +5,33 @@ import AppIcon from '@/components/AppIcon';
 import StarButton from '@/components/StarButton';
 import SaveToCollectionButton from '@/components/SaveToCollectionButton';
 import CollectionActions from '@/components/CollectionActions';
+import CollectionItemActions from '@/components/CollectionItemActions';
+import CollectionBrewfileExport from '@/components/CollectionBrewfileExport';
+import CollectionShareActions from '@/components/CollectionShareActions';
 import { TerminalSquare, ArrowLeft, Lock } from 'lucide-react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 
 export const revalidate = 0;
+
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const slug = (await props.params).slug;
+  const supabaseServer = await createSupabaseServer();
+  const { data: collection } = await supabaseServer
+    .from('collections').select('title, description, emoji, is_private').eq('slug', slug).single();
+  
+  if (!collection || collection.is_private) return { title: 'Collection' };
+  
+  return {
+    title: `${collection.emoji} ${collection.title} — Keg Collection`,
+    description: collection.description || `A curated collection of Mac apps and CLI tools.`,
+    openGraph: {
+      title: `${collection.emoji} ${collection.title}`,
+      description: collection.description || 'Curated Mac setup collection on Keg.',
+      type: 'website',
+    },
+  };
+}
 
 export default async function CollectionDetailsPage(props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -46,18 +69,23 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
         description,
         latest_version,
         kind
-      )
+      ),
+      sort_order
     `)
     .eq('collection_id', collection.id)
     .order('sort_order', { ascending: true });
 
-  const apps = (items?.map(item => item.resources).filter(Boolean) || []) as unknown as Array<{
+  const apps = (items?.map(item => ({
+    ...item.resources,
+    sort_order: item.sort_order
+  })).filter(Boolean) || []) as unknown as Array<{
     id: string;
     token: string;
     display_name: string | null;
     description: string | null;
     latest_version: string | null;
     kind: string;
+    sort_order: number;
   }>;
 
   let userBookmarks = new Set<string>();
@@ -97,7 +125,7 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
           overflow: 'hidden'
         }}>
           {isOwner && (
-            <CollectionActions collectionId={collection.id} initialIsPrivate={collection.is_private} />
+            <CollectionActions collection={collection as any} />
           )}
           {!isOwner && collection.is_private && (
             <div style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(0,0,0,0.3)', padding: '0.4rem 0.8rem', borderRadius: '20px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'white', backdropFilter: 'blur(4px)' }}>
@@ -106,18 +134,24 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
           )}
           
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>{collection.emoji}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '4rem' }}>{collection.emoji}</div>
+              <CollectionShareActions collectionSlug={collection.slug} collectionId={collection.id} isPublic={!collection.is_private} />
+            </div>
             <h1 style={{ fontSize: '3rem', fontWeight: 800, textShadow: '0 2px 4px rgba(0,0,0,0.3)', marginBottom: '1rem' }}>
               {collection.title}
             </h1>
             <p style={{ fontSize: '1.2rem', opacity: 0.9, textShadow: '0 1px 2px rgba(0,0,0,0.3)', maxWidth: '600px', lineHeight: 1.5 }}>
               {collection.description}
             </p>
+            {apps.length > 0 && (
+              <CollectionBrewfileExport collectionId={collection.id} resources={apps} />
+            )}
           </div>
         </div>
 
         <div className="app-grid">
-          {apps.map((app) => (
+          {apps.map((app, idx) => (
             <div key={app.id} style={{ position: 'relative' }}>
               <div className="app-card">
                 <Link href={`/app/${app.token}`} style={{ position: 'absolute', inset: 0, zIndex: 1 }} />
@@ -139,6 +173,17 @@ export default async function CollectionDetailsPage(props: { params: Promise<{ s
                     </div>
                     <div className="app-category">{app.kind === 'gui_app' ? 'Mac App' : 'CLI Tool'}</div>
                   </div>
+                  {isOwner && (
+                    <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'flex-start', marginLeft: '0.5rem' }}>
+                      <CollectionItemActions 
+                        collectionId={collection.id}
+                        resourceId={app.id}
+                        sortOrder={app.sort_order}
+                        isFirst={idx === 0}
+                        isLast={idx === apps.length - 1}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="app-desc">
                   {app.description || "No description available."}

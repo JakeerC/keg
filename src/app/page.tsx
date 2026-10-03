@@ -7,6 +7,7 @@ import KindToggle from '@/components/KindToggle';
 import AuthButton from '@/components/AuthButton';
 import StarButton from '@/components/StarButton';
 import SaveToCollectionButton from '@/components/SaveToCollectionButton';
+import OnboardingBanner from '@/components/OnboardingBanner';
 import { TerminalSquare } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -66,6 +67,15 @@ export default async function Home(props: PageProps) {
     if (bookmarks) {
       userBookmarks = new Set(bookmarks.map(b => b.resource_id));
     }
+  }
+
+  let showOnboarding = false;
+  if (session && userBookmarks.size === 0) {
+    const { count } = await supabaseServer
+      .from('collections')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', session.user.id);
+    showOnboarding = (count ?? 0) === 0;
   }
   
   let filterValue = filter as import('@/lib/browse-queries').BrowseFilter | undefined;
@@ -132,6 +142,7 @@ export default async function Home(props: PageProps) {
       </div>
 
       <main className="content-scroll">
+        {showOnboarding && <OnboardingBanner />}
         {heroApp && (
           <div style={{ position: 'relative' }}>
             <div className="hero-card">

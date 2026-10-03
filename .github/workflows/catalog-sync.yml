@@ -35,23 +35,71 @@ jobs:
       - name: Sync Formulae, Casks & Analytics
         if: ${{ github.event_name == 'schedule' || inputs.job == 'all' || inputs.job == 'sync' }}
         run: |
-          echo "Triggering /api/cron/sync..."
-          curl -f -sSL -X GET "${{ secrets.APP_URL }}/api/cron/sync" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
-          echo ""
+          RAW_URL="${{ secrets.APP_URL }}"
+          BASE_URL="${RAW_URL%/}"
+          ENDPOINT="$BASE_URL/api/cron/sync"
+          echo "Triggering $ENDPOINT..."
+          
+          RESPONSE=$(curl -sSL -w "\n%{http_code}" -X GET "$ENDPOINT" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
+          HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Response: $HTTP_BODY"
+          
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Sync completed successfully"
+          else
+            echo "::error::Sync failed with HTTP $HTTP_STATUS. Response: $HTTP_BODY"
+            exit 1
+          fi
 
       - name: Sync CaskFlow Categories
         if: ${{ github.event_name == 'schedule' || inputs.job == 'all' || inputs.job == 'sync-cask-categories' }}
         run: |
-          echo "Triggering /api/cron/sync-cask-categories..."
-          curl -f -sSL -X GET "${{ secrets.APP_URL }}/api/cron/sync-cask-categories" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
-          echo ""
+          RAW_URL="${{ secrets.APP_URL }}"
+          BASE_URL="${RAW_URL%/}"
+          ENDPOINT="$BASE_URL/api/cron/sync-cask-categories"
+          echo "Triggering $ENDPOINT..."
+          
+          RESPONSE=$(curl -sSL -w "\n%{http_code}" -X GET "$ENDPOINT" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
+          HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Response: $HTTP_BODY"
+          
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Cask categories sync completed successfully"
+          else
+            echo "::error::Cask categories sync failed with HTTP $HTTP_STATUS. Response: $HTTP_BODY"
+            exit 1
+          fi
 
       - name: Classify Formulae with Gemini
         if: ${{ github.event_name == 'schedule' || inputs.job == 'all' || inputs.job == 'classify' }}
         run: |
-          echo "Triggering /api/cron/classify..."
-          curl -f -sSL -X GET "${{ secrets.APP_URL }}/api/cron/classify" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
-          echo ""
+          RAW_URL="${{ secrets.APP_URL }}"
+          BASE_URL="${RAW_URL%/}"
+          ENDPOINT="$BASE_URL/api/cron/classify"
+          echo "Triggering $ENDPOINT..."
+          
+          RESPONSE=$(curl -sSL -w "\n%{http_code}" -X GET "$ENDPOINT" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
+          HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Response: $HTTP_BODY"
+          
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Classification completed successfully"
+          else
+            echo "::error::Classification failed with HTTP $HTTP_STATUS. Response: $HTTP_BODY"
+            exit 1
+          fi
