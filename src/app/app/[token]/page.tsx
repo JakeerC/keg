@@ -7,6 +7,7 @@ import StarButton from '@/components/StarButton';
 import SaveToCollectionButton from '@/components/SaveToCollectionButton';
 import TerminalCommand from '@/components/TerminalCommand';
 import AnalyticsChart from '@/components/AnalyticsChart';
+import ResourceAnnotation from '@/components/ResourceAnnotation';
 import { TerminalSquare, Globe, ArrowLeft, Command } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -82,6 +83,17 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
         </Link>
       </div>
     );
+  }
+
+  let userAnnotation = null;
+  if (session) {
+    const { data: annotation } = await supabaseServer
+      .from('user_resource_annotations')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .eq('resource_id', resource.id)
+      .single();
+    if (annotation) userAnnotation = annotation;
   }
 
   const isCask = resource.kind === 'gui_app';
@@ -291,6 +303,12 @@ export default async function AppDetailsPage(props: { params: Promise<{ token: s
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+            
+            {session && (
+              <div className="app-card" style={{ padding: '2rem', gridColumn: '1 / -1' }}>
+                <ResourceAnnotation resourceId={resource.id} initialAnnotation={userAnnotation} />
               </div>
             )}
           </div>

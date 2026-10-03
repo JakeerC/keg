@@ -5,7 +5,7 @@ import AuthButton from '@/components/AuthButton';
 import AppIcon from '@/components/AppIcon';
 import StarButton from '@/components/StarButton';
 import SaveToCollectionButton from '@/components/SaveToCollectionButton';
-import { TerminalSquare, ArrowLeft, Download } from 'lucide-react';
+import { TerminalSquare, ArrowLeft, Download, Bookmark, Archive, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -33,6 +33,14 @@ export default async function StarsPage() {
     `)
     .eq('user_id', session.user.id)
     .order('created_at', { ascending: false });
+
+  // Fetch annotations
+  const { data: annotations } = await supabaseServer
+    .from('user_resource_annotations')
+    .select('resource_id, install_state')
+    .eq('user_id', session.user.id);
+    
+  const annotationMap = new Map((annotations || []).map(a => [a.resource_id, a.install_state]));
 
   type StarredApp = {
     id: string;
@@ -102,8 +110,16 @@ export default async function StarsPage() {
                   {app.description || "No description available."}
                 </div>
                 <div className="card-footer">
-                  <div className="install-stats">
+                  <div className="install-stats" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', width: '100%' }}>
                     <span>v{app.latest_version?.substring(0, 8) || 'latest'}</span>
+                    <div style={{ marginLeft: 'auto' }}>
+                      {(() => {
+                        const state = annotationMap.get(app.id) || 'planned';
+                        if (state === 'installed') return <span className="install-badge installed"><CheckCircle2 size={12}/> Installed</span>;
+                        if (state === 'archived') return <span className="install-badge archived"><Archive size={12}/> Archived</span>;
+                        return <span className="install-badge planned"><Bookmark size={12}/> Planned</span>;
+                      })()}
+                    </div>
                   </div>
                 </div>
               </div>

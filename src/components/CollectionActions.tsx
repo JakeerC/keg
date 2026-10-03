@@ -2,18 +2,20 @@
 import { useState } from 'react';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
-import { Trash, Lock, Globe } from 'lucide-react';
+import { Trash, Lock, Globe, Pencil } from 'lucide-react';
+import EditCollectionModal, { type CollectionData } from './EditCollectionModal';
 
-export default function CollectionActions({ collectionId, initialIsPrivate }: { collectionId: string, initialIsPrivate: boolean }) {
-  const [isPrivate, setIsPrivate] = useState(initialIsPrivate);
+export default function CollectionActions({ collection }: { collection: CollectionData }) {
+  const [isPrivate, setIsPrivate] = useState(collection.is_private);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const supabase = createSupabaseBrowser();
   const router = useRouter();
 
   const togglePrivacy = async () => {
     const newState = !isPrivate;
     setIsPrivate(newState);
-    const { error } = await supabase.from('collections').update({ is_private: newState }).eq('id', collectionId);
+    const { error } = await supabase.from('collections').update({ is_private: newState }).eq('id', collection.id);
     if (error) {
       alert(`Failed to update privacy: ${error.message}`);
       setIsPrivate(!newState); // Revert UI
@@ -24,7 +26,7 @@ export default function CollectionActions({ collectionId, initialIsPrivate }: { 
   const deleteCollection = async () => {
     if (!confirm("Are you sure you want to delete this collection? This cannot be undone.")) return;
     setIsDeleting(true);
-    const { error } = await supabase.from('collections').delete().eq('id', collectionId);
+    const { error } = await supabase.from('collections').delete().eq('id', collection.id);
     if (error) {
       alert(`Failed to delete collection: ${error.message}`);
       setIsDeleting(false);
@@ -57,6 +59,25 @@ export default function CollectionActions({ collectionId, initialIsPrivate }: { 
       >
         <Trash size={14} /> Delete
       </button>
+
+      <button 
+        onClick={() => setShowEditModal(true)}
+        style={{
+          background: 'rgba(255, 255, 255, 0.2)', border: '1px solid rgba(255, 255, 255, 0.4)', borderRadius: '20px', padding: '0.4rem 0.8rem',
+          color: 'white', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', backdropFilter: 'blur(4px)',
+          fontSize: '0.8rem'
+        }}
+      >
+        <Pencil size={14} /> Edit
+      </button>
+      
+      {showEditModal && (
+        <EditCollectionModal
+          collection={collection}
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+        />
+      )}
     </div>
   );
 }
