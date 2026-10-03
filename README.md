@@ -74,11 +74,30 @@ Apply them in the intended order to a development Supabase project. The reposito
 ```bash
 npm run dev      # local development
 npm run lint     # ESLint
+npm test         # run Vitest unit tests
 npm run build    # production build and TypeScript validation
 npm start        # serve a production build
 ```
 
-There is currently no application test script.
+## Catalog synchronization and cron jobs
+
+Keg populates and updates its app catalog using three protected API routes requiring an `Authorization: Bearer <CRON_SECRET>` header:
+
+- **`/api/cron/sync`**: Downloads formula & cask lists from Homebrew, upserts package records, and saves install counts (30d/90d/365d).
+- **`/api/cron/sync-cask-categories`**: Downloads CaskFlow categories and maps GUI apps to categories.
+- **`/api/cron/classify`**: Batches uncategorized CLI tools and categorizes them with Gemini AI.
+
+**Triggering manually:**
+
+```bash
+curl -X GET "http://localhost:3000/api/cron/sync" -H "Authorization: Bearer YOUR_CRON_SECRET"
+curl -X GET "http://localhost:3000/api/cron/sync-cask-categories" -H "Authorization: Bearer YOUR_CRON_SECRET"
+curl -X GET "http://localhost:3000/api/cron/classify" -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
+
+**Automated scheduling:**
+- **Vercel Cron:** Scheduled daily in [`vercel.json`](./vercel.json) (staggered from 02:00 to 03:00 UTC). Set `CRON_SECRET` in Vercel project environment variables.
+- **GitHub Actions:** Configured in [`.github/workflows/catalog-sync.yml`](./.github/workflows/catalog-sync.yml) (runs daily at 02:00 UTC or on-demand via workflow dispatch). Provide `APP_URL` and `CRON_SECRET` in GitHub repository secrets.
 
 ## Documentation for contributors and coding agents
 

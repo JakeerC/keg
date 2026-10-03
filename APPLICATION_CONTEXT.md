@@ -27,7 +27,7 @@ The current source of truth is Homebrew. The database has a source abstraction, 
 - TypeScript `5`, strict mode, path alias `@/*` → `src/*`.
 - Supabase Postgres, Auth, and Row Level Security.
 - `@supabase/ssr` for browser/server session-aware clients.
-- Vercel deployment and daily cron configuration in `vercel.json`.
+- Vercel deployment and daily cron configuration in `vercel.json`, with an alternative GitHub Actions scheduled workflow in `.github/workflows/catalog-sync.yml`.
 - Homebrew Formulae API for catalog and analytics data.
 - CaskFlow category data plus Gemini classification for category enrichment.
 - `lucide-react`, `recharts`, and `next-themes` for UI features.
@@ -72,12 +72,15 @@ The SQL definitions live in `database/schema.sql` and `database/phase3-schema.sq
 
 RLS is part of the security model. Public catalog reads should use public access; user-owned bookmarks and collections must use a session-aware client; service-role access must stay inside server-only code and ingestion jobs.
 
-## Data flow
+## Data flow and scheduled ingestion
 
-1. `/api/cron/sync` fetches Homebrew formula and cask lists and upserts resources.
-2. The same job fetches Homebrew analytics and upserts snapshots.
-3. `/api/cron/sync-cask-categories` imports CaskFlow mappings.
-4. `/api/cron/classify` uses Gemini to categorize uncategorized formulae.
+Catalog synchronization runs daily to keep packages, analytics, and categories fresh:
+1. `02:00 UTC` - `/api/cron/sync`: Fetches official Homebrew formulae (`formula.json`) and casks (`cask.json`), upserts rows in `resources` (keyed on `source_id, token`), and fetches `30d`, `90d`, and `365d` install metrics into `analytics_snapshots`.
+2. `02:30 UTC` - `/api/cron/sync-cask-categories`: Imports CaskFlow `categories.json` to map GUI applications to primary and secondary categories in `resource_categories`.
+3. `03:00 UTC` - `/api/cron/classify`: Queries uncategorized CLI tools and classifies them in batches using Gemini (`gemini-2.5-flash`).
+
+All cron endpoints require `Authorization: Bearer <CRON_SECRET>` verified by `src/lib/cron-auth.ts`, enforce a 5-minute concurrency guard, and record outcomes in `ingestion_runs`. They are configured for Vercel Cron in `vercel.json` and mirrored in `.github/workflows/catalog-sync.yml`.
+
 5. Browse/detail routes read Supabase data and, for resource details, may fetch live Homebrew metadata.
 6. Authenticated users mutate bookmarks and collection rows through browser Supabase clients governed by RLS.
 7. `/api/brewfile` converts a user's starred resources into `brew` and `cask` entries.
