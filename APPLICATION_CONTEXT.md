@@ -77,7 +77,7 @@ RLS is part of the security model. Public catalog reads should use public access
 Catalog synchronization runs daily to keep packages, analytics, and categories fresh:
 1. `02:00 UTC` - `/api/cron/sync`: Fetches official Homebrew formulae (`formula.json`) and casks (`cask.json`), upserts rows in `resources` (keyed on `source_id, token`), and fetches `30d`, `90d`, and `365d` install metrics into `analytics_snapshots`.
 2. `02:30 UTC` - `/api/cron/sync-cask-categories`: Imports CaskFlow `categories.json` to map GUI applications to primary and secondary categories in `resource_categories`.
-3. `03:00 UTC` - `/api/cron/classify`: Queries uncategorized CLI tools and classifies them in batches using Gemini (`gemini-2.5-flash`).
+3. `03:00 UTC` - `/api/cron/classify`: Queries uncategorized CLI tools and classifies them in batches using Gemini (`gemini-3.8-flash`).
 
 All cron endpoints require `Authorization: Bearer <CRON_SECRET>` verified by `src/lib/cron-auth.ts`, enforce a 5-minute concurrency guard, and record outcomes in `ingestion_runs`. They are configured for Vercel Cron in `vercel.json` and mirrored in `.github/workflows/catalog-sync.yml`.
 
