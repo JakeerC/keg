@@ -85,7 +85,7 @@ Keg populates and updates its app catalog using three protected API routes requi
 
 - **`/api/cron/sync`**: Downloads formula & cask lists from Homebrew, upserts package records, and saves install counts (30d/90d/365d).
 - **`/api/cron/sync-cask-categories`**: Downloads CaskFlow categories and maps GUI apps to categories.
-- **`/api/cron/classify`**: Batches uncategorized CLI tools and categorizes them with Gemini AI.
+- **`/api/cron/classify`**: Batches uncategorized CLI tools (up to 50 per run) into a single API request and categorizes them using Gemini AI (`gemini-3.8-flash`) to maximize token usage and bypass RPM limits.
 
 **Triggering manually:**
 
