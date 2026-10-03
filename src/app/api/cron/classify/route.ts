@@ -108,7 +108,7 @@ Output ONLY a valid JSON object mapping each ID to its category slug. Example:
 
     try {
       let responseText: string | undefined;
-      let retries = 3;
+      let retries = 5;
       let delay = 5000;
       
       while (retries > 0) {
