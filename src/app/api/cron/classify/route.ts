@@ -71,36 +71,47 @@ export async function GET(request: Request) {
     // Filter in JS to find ones with no categories mapped
     const uncategorized = resources
       .filter(r => !r.resource_categories || r.resource_categories.length === 0)
-      .slice(0, 50); // 50 per run
+      .slice(0, 50); // Process 50 at a time using a single batch request
 
     if (uncategorized.length === 0) {
       return { processed: 0, skipped: 0, failed: 0 };
     }
 
-    console.log(`[${runId}] Classifying ${uncategorized.length} resources via Gemini...`);
+    console.log(`[${runId}] Classifying ${uncategorized.length} resources via Gemini batch request...`);
     
-    // 3. Classify each using Gemini
-    for (const app of uncategorized) {
-      const prompt = `
-You are an expert software classifier. Categorize the following CLI tool into exactly one of the following category slugs:
+    const prompt = `
+You are an expert software classifier. Categorize the following CLI tools into exactly one of the following category slugs:
 [${CATEGORIES.map(c => c.slug).join(', ')}]
 
-Tool Name: ${app.token}
-Description: ${app.description || 'No description provided.'}
-Homepage: ${app.homepage || 'No homepage provided.'}
+Here are the tools:
+${uncategorized.map(app => `ID: ${app.token}\nDescription: ${app.description || 'No description provided.'}\nHomepage: ${app.homepage || 'No homepage provided.'}`).join('\n\n')}
 
-Output ONLY the exact category slug from the list above. Do not output anything else. If you are entirely unsure, output 'uncategorized'.
+Output ONLY a valid JSON object mapping each ID to its category slug. Example:
+{
+  "tool1": "developer-tools",
+  "tool2": "uncategorized"
+}
 `;
-      try {
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: prompt,
-        });
 
-        const rawOutput = response.text?.trim().toLowerCase() || 'uncategorized';
-        // Accept only an exact allowed slug; substring matching can select a
-        // category from explanatory or otherwise ambiguous model output.
-        const chosenSlug = parseClassifierCategory(rawOutput, CATEGORIES.map(category => category.slug));
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      const rawOutput = response.text?.trim() || '{}';
+      let results: Record<string, string> = {};
+      try {
+        results = JSON.parse(rawOutput);
+      } catch (_e) {
+        throw new Error("Failed to parse Gemini JSON output: " + rawOutput);
+      }
+
+      for (const app of uncategorized) {
+        const chosenSlug = parseClassifierCategory(results[app.token] || 'uncategorized', CATEGORIES.map(category => category.slug));
         const categoryId = categoryMap.get(chosenSlug);
 
         if (categoryId) {
@@ -120,11 +131,11 @@ Output ONLY the exact category slug from the list above. Do not output anything 
         } else {
            skipped++;
         }
-      } catch (err) {
-        console.error(`[${runId}] Failed to classify ${app.token}:`, err);
-        failed++;
-        error_summary += `API error for ${app.token}: ${err instanceof Error ? err.message : String(err)}. `;
       }
+    } catch (err) {
+      console.error(`[${runId}] Failed batch classification:`, err);
+      failed += uncategorized.length;
+      error_summary += `Batch API error: ${err instanceof Error ? err.message : String(err)}. `;
     }
 
     return {
