@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams, usePathname } from 'next/navigation';
-import { LayoutGrid, Star, TrendingUp, Clock, Sparkles, Music, Globe, Cloud, MessageSquare, PenTool, Terminal, Bitcoin, Gamepad2, MenuSquare, Briefcase, GraduationCap, Shield, Wrench, Video, Code, List, PanelLeft } from "lucide-react";
+import { LayoutGrid, Star, TrendingUp, Clock, Sparkles, Music, Globe, Cloud, MessageSquare, PenTool, Terminal, Bitcoin, Gamepad2, MenuSquare, Briefcase, FileText, GraduationCap, Shield, Wrench, Video, Code, ImageIcon, List, PanelLeft } from "lucide-react";
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
 
 import type { User } from '@supabase/supabase-js';
@@ -90,9 +90,11 @@ export default function Sidebar() {
           <Link title="Finance & Crypto" href={createLink('category', 'finance-crypto')} className={`nav-item ${activeCategory === 'finance-crypto' ? 'active' : ''}`}><Bitcoin className="nav-icon" /> Finance & Crypto</Link>
           <Link title="Games" href={createLink('category', 'games')} className={`nav-item ${activeCategory === 'games' ? 'active' : ''}`}><Gamepad2 className="nav-icon" /> Games</Link>
           <Link title="Menu Bar" href={createLink('category', 'menu-bar')} className={`nav-item ${activeCategory === 'menu-bar' ? 'active' : ''}`}><MenuSquare className="nav-icon" /> Menu Bar</Link>
+          <Link title="Office Tools" href={createLink('category', 'office-tools')} className={`nav-item ${activeCategory === 'office-tools' ? 'active' : ''}`}><FileText className="nav-icon" /> Office Tools</Link>
           <Link title="Productivity" href={createLink('category', 'productivity')} className={`nav-item ${activeCategory === 'productivity' ? 'active' : ''}`}><Briefcase className="nav-icon" /> Productivity</Link>
           <Link title="Science & Education" href={createLink('category', 'science-education')} className={`nav-item ${activeCategory === 'science-education' ? 'active' : ''}`}><GraduationCap className="nav-icon" /> Science & Education</Link>
           <Link title="Security & Privacy" href={createLink('category', 'security-privacy')} className={`nav-item ${activeCategory === 'security-privacy' ? 'active' : ''}`}><Shield className="nav-icon" /> Security & Privacy</Link>
+          <Link title="Screensaver & Wallpaper" href={createLink('category', 'screensaver-wallpaper')} className={`nav-item ${activeCategory === 'screensaver-wallpaper' ? 'active' : ''}`}><ImageIcon className="nav-icon" /> Screensaver & Wallpaper</Link>
           <Link title="Utilities" href={createLink('category', 'utilities')} className={`nav-item ${activeCategory === 'utilities' ? 'active' : ''}`}><Wrench className="nav-icon" /> Utilities</Link>
           <Link title="Video" href={createLink('category', 'video')} className={`nav-item ${activeCategory === 'video' ? 'active' : ''}`}><Video className="nav-icon" /> Video</Link>
           <Link title="Web Development" href={createLink('category', 'web-development')} className={`nav-item ${activeCategory === 'web-development' ? 'active' : ''}`}><Code className="nav-icon" /> Web Development</Link>

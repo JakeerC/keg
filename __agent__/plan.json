@@ -2,22 +2,22 @@
   "schema_version": 1,
   "items": [
     {
-      "title": "Review existing P0 roadmap scope and repository guidance",
-      "status": "done"
+      "title": "Inspect live category assignments and browse filtering behavior",
+      "status": "in-progress"
     },
     {
-      "title": "Write an executable P0 correctness/security/trust plan",
-      "status": "done"
+      "title": "Confirm why Developer Tools and AI/LLM pages appear empty",
+      "status": "pending"
     },
     {
-      "title": "Link the P0 plan from project documentation",
-      "status": "done"
+      "title": "Fix category browsing so mapped resources are visible",
+      "status": "pending"
     },
     {
-      "title": "Validate plan references and working-tree changes",
-      "status": "done"
+      "title": "Run tests, build, and review the result",
+      "status": "pending"
     }
   ],
-  "updated_at": "2026-10-01T17:59:37.908Z",
-  "session_id": "01a0f877-fa25-71cc-bbf6-ef4c449edd1d"
+  "updated_at": "2026-10-02T10:24:31.616Z",
+  "session_id": "01a0fbf0-cd63-7329-b01f-5bb95ceb0bb6"
 }

@@ -2,6 +2,11 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { runIngestionJob, fetchWithTimeout } from '@/lib/ingestion-runner';
+import {
+  getCategoryDisplayName,
+  normalizeCaskFlowCategory,
+  parseCaskFlowCategoryInfo,
+} from '@/lib/category-mapping';
 
 export const revalidate = 0;
 export const maxDuration = 300;
@@ -11,44 +16,110 @@ export async function GET(request: Request) {
   if (authResponse) return authResponse;
 
   return runIngestionJob('sync-cask-categories', async (runId) => {
+    type MappingPayload = {
+      resource_id: string;
+      category_id: string;
+      is_primary: boolean;
+    };
+    type CaskFlowData = {
+      tokenToCategory?: Record<string, unknown>;
+      categories?: Record<string, { displayName?: unknown }>;
+    };
+
     let processed = 0;
     let failed = 0;
+    let skipped = 0;
     let partial = false;
     let error_summary = '';
 
     console.log(`[${runId}] Fetching CaskFlow categories.json...`);
     const res = await fetchWithTimeout('https://github.com/alielsokary/CaskFlow/releases/latest/download/categories.json', 30000);
-    const data = await res.json();
-    
+    const data = await res.json() as CaskFlowData;
     const tokenToCategory = data.tokenToCategory;
-    if (!tokenToCategory) throw new Error('tokenToCategory missing from JSON');
+    if (!tokenToCategory || typeof tokenToCategory !== 'object' || Array.isArray(tokenToCategory)) {
+      throw new Error('tokenToCategory missing from JSON');
+    }
 
-    const CASKFLOW_TO_DB_MAP: Record<string, string> = {
-      'ai': 'ai-llms',
-      'videoMedia': 'video',
-      'officeTools': 'office-tools',
-      'other': 'uncategorized',
-      'screensaverWallpaper': 'screensaver-wallpaper'
+    // Resolve the source and kind before looking up tokens. Tokens are only
+    // unique within a source, and a formula can otherwise receive a cask tag.
+    const { data: source, error: sourceError } = await supabaseAdmin
+      .from('sources')
+      .select('id')
+      .eq('slug', 'homebrew')
+      .single();
+    if (sourceError || !source) {
+      throw new Error(`Homebrew source lookup failed: ${sourceError?.message || 'source not found'}`);
+    }
+
+    const { data: dbCategories, error: categoriesError } = await supabaseAdmin
+      .from('categories')
+      .select('id, slug');
+    if (categoriesError) {
+      throw new Error(`Category lookup failed: ${categoriesError.message}`);
+    }
+    const categoryMap = new Map(dbCategories?.map(category => [category.slug, category.id]));
+    const categoryFailures = new Set<string>();
+    const displayNameUpdates = new Set<string>();
+
+    const ensureCategory = async (categoryKey: string): Promise<string | null> => {
+      const slug = normalizeCaskFlowCategory(categoryKey);
+      if (!slug) return null;
+
+      const sourceDisplayName = data.categories?.[categoryKey]?.displayName;
+      const existingId = categoryMap.get(slug);
+      if (existingId) {
+        // Repair rows created by the old importer, which used camelCase keys
+        // such as "developerTools" as the display name.
+        if (sourceDisplayName && !displayNameUpdates.has(slug)) {
+          displayNameUpdates.add(slug);
+          const { error } = await supabaseAdmin
+            .from('categories')
+            .update({ display_name: getCategoryDisplayName(slug, sourceDisplayName) })
+            .eq('id', existingId);
+          if (error) {
+            failed++;
+            partial = true;
+            error_summary += `Category display-name update error for ${slug}: ${error.message}. `;
+          }
+        }
+        return existingId;
+      }
+      const { data: newCategory, error } = await supabaseAdmin
+        .from('categories')
+        .upsert(
+          { slug, display_name: getCategoryDisplayName(slug, sourceDisplayName) },
+          { onConflict: 'slug' }
+        )
+        .select('id')
+        .single();
+
+      if (error || !newCategory) {
+        if (!categoryFailures.has(slug)) {
+          categoryFailures.add(slug);
+          failed++;
+          partial = true;
+          error_summary += `Category upsert error for ${slug}: ${error?.message || 'category ID missing'}. `;
+        }
+        return null;
+      }
+
+      categoryMap.set(slug, newCategory.id);
+      return newCategory.id;
     };
-
-    // 1. Fetch categories map from DB
-    const { data: dbCategories } = await supabaseAdmin.from('categories').select('id, slug');
-    const categoryMap = new Map(dbCategories?.map(c => [c.slug, c.id]));
 
     const tokensToMap = Object.keys(tokenToCategory);
     console.log(`[${runId}] Mapping ${tokensToMap.length} Casks to Categories...`);
-    const payload = [];
+    const payload: MappingPayload[] = [];
+    const mappingsByResource = new Map<string, MappingPayload[]>();
 
-    // Chunk the tokens to fetch their IDs from Supabase
-    const tokenChunks = [];
+    // Chunk the tokens to keep each PostgREST request bounded.
     for (let i = 0; i < tokensToMap.length; i += 200) {
-      tokenChunks.push(tokensToMap.slice(i, i + 200));
-    }
-
-    for (const chunk of tokenChunks) {
+      const chunk = tokensToMap.slice(i, i + 200);
       const { data: resources, error } = await supabaseAdmin
         .from('resources')
         .select('id, token')
+        .eq('source_id', source.id)
+        .eq('kind', 'gui_app')
         .in('token', chunk);
 
       if (error) {
@@ -61,48 +132,81 @@ export async function GET(request: Request) {
       if (!resources) continue;
 
       for (const resource of resources) {
-        const catInfo = tokenToCategory[resource.token];
-        if (!catInfo) continue;
-
-        const primarySlug = (catInfo as { primary: string }).primary;
-        const normalizedSlug = CASKFLOW_TO_DB_MAP[primarySlug] || primarySlug.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-        
-        let categoryId = categoryMap.get(normalizedSlug);
-        if (!categoryId) {
-           const { data: newCat } = await supabaseAdmin.from('categories')
-              .insert({ slug: normalizedSlug, display_name: primarySlug })
-              .select('id').single();
-           if (newCat) {
-              categoryId = newCat.id;
-              categoryMap.set(normalizedSlug, categoryId);
-           }
+        const categoryInfo = parseCaskFlowCategoryInfo(tokenToCategory[resource.token]);
+        if (!categoryInfo) {
+          skipped++;
+          continue;
         }
 
-        if (categoryId) {
-          payload.push({
-            resource_id: resource.id,
-            category_id: categoryId,
-            is_primary: true
-          });
+        const categoryKeys = [categoryInfo.primary, ...categoryInfo.secondary];
+        const uniqueCategoryKeys = [...new Set(categoryKeys.filter(category => normalizeCaskFlowCategory(category)))];
+        const primarySlug = normalizeCaskFlowCategory(categoryInfo.primary);
+        const primaryId = await ensureCategory(categoryInfo.primary);
+        if (!primaryId) {
+          skipped++;
+          continue;
         }
+
+        const resourceMappings: MappingPayload[] = [{
+          resource_id: resource.id,
+          category_id: primaryId,
+          is_primary: true,
+        }];
+
+        for (const categoryKey of uniqueCategoryKeys) {
+          if (normalizeCaskFlowCategory(categoryKey) === primarySlug) continue;
+          const categoryId = await ensureCategory(categoryKey);
+          if (categoryId) {
+            resourceMappings.push({
+              resource_id: resource.id,
+              category_id: categoryId,
+              is_primary: false,
+            });
+          }
+        }
+
+        payload.push(...resourceMappings);
+        mappingsByResource.set(resource.id, resourceMappings);
       }
     }
 
-    if (payload.length === 0) {
-      return { processed: 0, skipped: 0, failed: 0 };
+    if (mappingsByResource.size === 0) {
+      return { processed: 0, skipped, failed, partial, error_summary: error_summary || undefined };
     }
 
-    // 4. Batch insert in chunks of 1000
-    console.log(`[${runId}] Inserting ${payload.length} categorizations...`);
-    const chunkSize = 1000;
-    
-    for (let i = 0; i < payload.length; i += chunkSize) {
-      const chunk = payload.slice(i, i + chunkSize);
-      
+    // CaskFlow is authoritative for cask categories. Remove the old rows
+    // before inserting the current primary/secondary set so reclassification
+    // cannot leave multiple primary categories behind.
+    const syncableResourceIds = new Set<string>();
+    const resourceIds = [...mappingsByResource.keys()];
+    for (let i = 0; i < resourceIds.length; i += 200) {
+      const resourceChunk = resourceIds.slice(i, i + 200);
       const { error } = await supabaseAdmin
         .from('resource_categories')
-        .upsert(chunk, { onConflict: 'resource_id,category_id' }); 
-        
+        .delete()
+        .in('resource_id', resourceChunk);
+
+      if (error) {
+        console.error(`[${runId}] Error clearing existing mappings:`, error.message);
+        failed += resourceChunk.length;
+        partial = true;
+        error_summary += `Mapping cleanup error: ${error.message}. `;
+        continue;
+      }
+
+      resourceChunk.forEach(resourceId => syncableResourceIds.add(resourceId));
+    }
+
+    const payloadToInsert = payload.filter(mapping => syncableResourceIds.has(mapping.resource_id));
+    console.log(`[${runId}] Inserting ${payloadToInsert.length} categorizations...`);
+    const chunkSize = 1000;
+
+    for (let i = 0; i < payloadToInsert.length; i += chunkSize) {
+      const chunk = payloadToInsert.slice(i, i + chunkSize);
+      const { error } = await supabaseAdmin
+        .from('resource_categories')
+        .upsert(chunk, { onConflict: 'resource_id,category_id' });
+
       if (error) {
         console.error(`[${runId}] Batch insert error:`, error.message);
         failed += chunk.length;
@@ -115,10 +219,10 @@ export async function GET(request: Request) {
 
     return {
       processed,
-      skipped: 0,
+      skipped,
       failed,
       partial,
-      error_summary: error_summary || undefined
+      error_summary: error_summary || undefined,
     };
   });
 }

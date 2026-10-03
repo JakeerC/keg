@@ -18,7 +18,7 @@ export default function AppIcon({ token, isHero }: { token: string; isHero?: boo
         src={`https://raw.githubusercontent.com/alielsokary/CaskFlow/icons/${token}.png`} 
         alt={`${token} icon`}
         fill
-        unoptimized
+        priority={isHero}
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         style={{ objectFit: 'contain', borderRadius: sizeClass?.borderRadius || '12px' }}
         onError={() => setError(true)}

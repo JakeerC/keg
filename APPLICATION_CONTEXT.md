@@ -68,6 +68,7 @@ The SQL definitions live in `database/schema.sql` and `database/phase3-schema.sq
 - `bookmarks`: per-user starred resources.
 - `collections`: per-user public/private lists with presentation metadata.
 - `collection_items`: resources in collections with ordering.
+- `ingestion_runs`: tracks execution history, statuses, and counts for cron jobs.
 
 RLS is part of the security model. Public catalog reads should use public access; user-owned bookmarks and collections must use a session-aware client; service-role access must stay inside server-only code and ingestion jobs.
 
@@ -107,11 +108,12 @@ OAuth providers, magic-link redirect URLs, and Supabase RLS policies must also b
 npm install
 npm run dev
 npm run lint
+npm test
 npm run build
 npm start
 ```
 
-There is currently no `test` script. Do not report tests as passing unless a test command has actually been added and run.
+The repository includes a `vitest` suite for secret-free unit tests. Run `npm test` to validate core logic and components. Full integration tests involving database views or Row-Level Security require a configured local Supabase environment.
 
 ## Implementation conventions
 
@@ -130,13 +132,9 @@ There is currently no `test` script. Do not report tests as passing unless a tes
 
 These are documented in more detail in [`ROADMAP.md`](./ROADMAP.md):
 
-- Sidebar `featured`, `top`, and `recent` filters are not fully wired to distinct queries.
-- The sync job currently does not provide the full analytics history expected by the detail chart.
-- Some analytics queries do not explicitly select the latest snapshot.
-- Private collection reads need a session-aware server query path.
-- Cron authorization and ingestion observability need to fail closed and report partial failures.
-- Lint is currently failing; there is no application test suite or CI workflow.
 - Catalog status text includes hardcoded values.
+- Ranked full-text search and cursor pagination (planned for Phase 1).
+- Collection editing, sharing, and duplication (planned for Phase 2).
 
 ## Documentation map
 
