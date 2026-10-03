@@ -257,12 +257,7 @@ export default async function Home(props: PageProps) {
                  filterValue === 'featured' ? 'No featured apps found.' :
                  'No apps found.'}
               </div>
-              {(!kind || kind === 'both') && sort !== 'recent' && (
-                <div style={{ fontSize: '0.95rem', backgroundColor: 'var(--bg-card)', padding: '1rem', borderRadius: '8px', display: 'inline-block', border: '1px solid var(--border-color)' }}>
-                  Top charts only show Mac Apps by default due to incompatible metrics.<br/>
-                  Try switching to <Link href={`/?${new URLSearchParams({ ...Object.fromEntries(Object.entries(searchParams).filter(([_, v]) => v !== undefined)), kind: 'cli_tool' }).toString()}`} style={{ color: 'var(--text-primary)', textDecoration: 'underline', fontWeight: 600 }}>CLI Tools</Link> or sorting by <Link href={`/?${new URLSearchParams({ ...Object.fromEntries(Object.entries(searchParams).filter(([_, v]) => v !== undefined)), sort: 'recent' }).toString()}`} style={{ color: 'var(--text-primary)', textDecoration: 'underline', fontWeight: 600 }}>Recently Added</Link> to see more results.
-                </div>
-              )}
+
             </div>
           )}
         </div>

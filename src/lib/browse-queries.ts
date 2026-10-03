@@ -74,34 +74,43 @@ export async function getBrowseResults(
   const isTopRanking = filter === 'top' || (filter !== 'recent' && sort !== 'recent');
 
   if (isTopRanking) {
-    let dbQuery = supabase
-      .from('latest_analytics_snapshots')
-      .select(`
-        count,
-        resources!inner (
-          id,
-          token,
-          display_name,
-          description,
-          latest_version,
-          kind,
-          updated_at
-        )
-      `)
-      .eq('time_window', '30d');
+    // Determine whether the user explicitly picked a kind
+    const explicitKind = kind && kind !== 'both' ? kind : null;
 
-    // Do not combine incompatible metrics in a single ranking
-    const activeKind = kind && kind !== 'both' ? kind : 'gui_app'; 
-    dbQuery = dbQuery.eq('resources.kind', activeKind);
-    dbQuery = dbQuery.eq('metric', activeKind === 'gui_app' ? 'cask-install' : 'install-on-request');
+    if (explicitKind) {
+      // Single-kind query — straightforward
+      return fetchTopRanking(supabase, {
+        kind: explicitKind,
+        query, validResourceIds, limit,
+      });
+    }
 
-    if (query) dbQuery = dbQuery.or(`display_name.ilike.%${query}%,token.ilike.%${query}%`, { foreignTable: 'resources' });
-    if (validResourceIds) dbQuery = dbQuery.in('resource_id', validResourceIds);
-    
-    dbQuery = dbQuery.order('count', { ascending: false });
+    // No explicit kind. When a category, search, or featured filter is active
+    // we need to show *both* Mac Apps and CLI Tools so the user isn't confused
+    // by an empty page (categories like Developer Tools are predominantly CLI
+    // tools). We run two parallel queries (one per metric) and merge results.
+    const needsBothKinds = !!(category || query || validResourceIds);
 
-    const { data } = await dbQuery.limit(limit);
-    return (data || []) as unknown as AppData[];
+    if (needsBothKinds) {
+      const [guiResults, cliResults] = await Promise.all([
+        fetchTopRanking(supabase, { kind: 'gui_app', query, validResourceIds, limit }),
+        fetchTopRanking(supabase, { kind: 'cli_tool', query, validResourceIds, limit }),
+      ]);
+
+      // Merge by count descending, taking the top `limit` results
+      const merged = [...guiResults, ...cliResults]
+        .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
+        .slice(0, limit);
+
+      return merged;
+    }
+
+    // Default home page with no filters: show only gui_app to keep rankings
+    // clean (cask-install and install-on-request counts aren't comparable).
+    return fetchTopRanking(supabase, {
+      kind: 'gui_app',
+      query, validResourceIds, limit,
+    });
   } else {
     // recent or specific query sorting by recent
     let dbQuery = supabase
@@ -140,4 +149,50 @@ export async function getBrowseResults(
       };
     }) as unknown as AppData[];
   }
+}
+
+/** Fetch top-ranked resources for a single kind from the analytics view. */
+async function fetchTopRanking(
+  supabase: SupabaseClient,
+  opts: {
+    kind: string;
+    query?: string;
+    validResourceIds: string[] | null;
+    limit: number;
+  }
+): Promise<AppData[]> {
+  const metric = opts.kind === 'gui_app' ? 'cask-install' : 'install-on-request';
+
+  let dbQuery = supabase
+    .from('latest_analytics_snapshots')
+    .select(`
+      count,
+      resources!inner (
+        id,
+        token,
+        display_name,
+        description,
+        latest_version,
+        kind,
+        updated_at
+      )
+    `)
+    .eq('time_window', '30d')
+    .eq('resources.kind', opts.kind)
+    .eq('metric', metric);
+
+  if (opts.query) {
+    dbQuery = dbQuery.or(
+      `display_name.ilike.%${opts.query}%,token.ilike.%${opts.query}%`,
+      { foreignTable: 'resources' }
+    );
+  }
+  if (opts.validResourceIds) {
+    dbQuery = dbQuery.in('resource_id', opts.validResourceIds);
+  }
+
+  dbQuery = dbQuery.order('count', { ascending: false });
+
+  const { data } = await dbQuery.limit(opts.limit);
+  return (data || []) as unknown as AppData[];
 }
